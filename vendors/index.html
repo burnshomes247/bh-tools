@@ -87,9 +87,12 @@
   .card-contact a:hover { color: var(--accent); }
   .card-notes { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; display: flex; flex-wrap: wrap; gap: 4px; }
   .note { font-size: 11px; background: var(--accent-light); color: var(--accent); border-radius: 4px; padding: 2px 7px; font-family: var(--mono); }
-  .card-del { position: absolute; top: 10px; right: 10px; background: transparent; border: none; cursor: pointer; color: var(--muted); opacity: 0; font-size: 15px; line-height: 1; padding: 2px; }
-  .card:hover .card-del { opacity: 1; }
-  .card-del:hover { color: var(--accent); }
+  .card-actions { position: absolute; top: 10px; right: 10px; display: flex; gap: 4px; opacity: 0; transition: opacity 0.15s; }
+  .card:hover .card-actions { opacity: 1; }
+  .card-btn { background: transparent; border: none; cursor: pointer; color: var(--muted); font-size: 15px; line-height: 1; padding: 2px; }
+  .card-btn:hover { color: var(--accent); }
+  .copy-toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--surface); font-size: 13px; padding: 8px 16px; border-radius: 99px; opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 999; white-space: nowrap; }
+  .copy-toast.show { opacity: 1; }
 
   .empty { text-align: center; padding: 60px 20px; color: var(--muted); font-size: 14px; }
   .empty-icon { font-size: 36px; display: block; margin-bottom: 12px; opacity: 0.3; }
@@ -160,6 +163,7 @@
 </head>
 <body>
 
+<div class="copy-toast" id="copy-toast">Copied to clipboard</div>
 <div class="header">
   <span class="logo">BURNSHOMES</span>
   <div class="header-divider"></div>
@@ -369,6 +373,29 @@ async function addVendor(vendor) {
   return vendors;
 }
 
+function shareVendor(id) {
+  const vendors = loadLocalVendors();
+  const v = vendors.find(v => v.id === id);
+  if (!v) return;
+  const parts = [];
+  if (v.company) parts.push(v.company);
+  if (v.contact_name && v.contact_name !== v.company) parts.push(v.contact_name);
+  if (v.phone) parts.push(v.phone);
+  if (v.email) parts.push(v.email);
+  if (v.website) parts.push(v.website);
+  if (v.notes && v.notes.length) parts.push(v.notes.join(' · '));
+  const text = parts.join('\n');
+  if (navigator.share) {
+    navigator.share({ text });
+  } else {
+    navigator.clipboard.writeText(text).then(() => {
+      const toast = document.getElementById('copy-toast');
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2000);
+    });
+  }
+}
+
 async function deleteVendor(id) {
   const vendors = loadLocalVendors().filter(v => v.id !== id);
   saveLocalVendors(vendors);
@@ -544,7 +571,10 @@ function render() {
       const card = document.createElement('div');
       card.className = 'card';
       card.innerHTML = `
-        <button class="card-del" onclick="deleteVendor('${esc(v.id)}')" title="Remove"><i class="ti ti-x"></i></button>
+        <div class="card-actions">
+          <button class="card-btn" onclick="shareVendor('${esc(v.id)}')" title="Copy contact info"><i class="ti ti-copy"></i></button>
+          <button class="card-btn" onclick="deleteVendor('${esc(v.id)}')" title="Remove"><i class="ti ti-x"></i></button>
+        </div>
         <div class="card-top">
           <div class="avatar" style="background:${style.bg};color:${style.fg};">${initials}</div>
           <div style="flex:1;min-width:0;">
