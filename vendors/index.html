@@ -211,7 +211,8 @@ Example: Hi Mike, I'm Sarah with ABC Title. We offer no payment due till settlem
       <div class="form-grid">
         <div class="form-group full">
           <label>Category</label>
-          <select id="m-category">
+          <select id="m-category" onchange="toggleCustomCat(this.value)">
+            <option value="Appraiser">Appraiser</option>
             <option value="Title &amp; Settlement">Title &amp; Settlement</option>
             <option value="Lender / Mortgage">Lender / Mortgage</option>
             <option value="Inspection">Inspection</option>
@@ -223,7 +224,12 @@ Example: Hi Mike, I'm Sarah with ABC Title. We offer no payment due till settlem
             <option value="Insurance">Insurance</option>
             <option value="Marketing">Marketing</option>
             <option value="Other">Other</option>
+            <option value="__custom__">+ Add new category…</option>
           </select>
+        </div>
+        <div class="form-group full" id="custom-cat-wrap" style="display:none;">
+          <label>Custom category name</label>
+          <input type="text" id="m-custom-category" placeholder="e.g. Survey, Escrow, Moving…" />
         </div>
         <div class="form-group"><label>Company</label><input type="text" id="m-company" placeholder="ABC Title Co." /></div>
         <div class="form-group"><label>Contact name</label><input type="text" id="m-contact" placeholder="Sarah Jones" /></div>
@@ -409,9 +415,13 @@ function shareVendor(id) {
 }
 
 async function deleteVendor(id) {
-  const vendors = loadLocalVendors().filter(v => v.id !== id);
-  saveLocalVendors(vendors);
-  await pushToGitHub(vendors);
+  const vendors = loadLocalVendors();
+  const v = vendors.find(item => item.id === id);
+  const name = v ? (v.company || v.contact_name || 'this vendor') : 'this vendor';
+  if (!confirm(`Remove ${name}?`)) return;
+  const updated = vendors.filter(item => item.id !== id);
+  saveLocalVendors(updated);
+  await pushToGitHub(updated);
   render();
 }
 
@@ -473,10 +483,18 @@ ${text}`;
 }
 
 // --- MANUAL SAVE ---
+function toggleCustomCat(val) {
+  document.getElementById('custom-cat-wrap').style.display = val === '__custom__' ? 'flex' : 'none';
+}
+
 async function saveManual() {
   const company = document.getElementById('m-company').value.trim();
   const contact = document.getElementById('m-contact').value.trim();
   if (!company && !contact) { showStatus('manual-status', 'Enter at least a company or contact name.', 'err'); return; }
+  const catVal = document.getElementById('m-category').value;
+  const category = catVal === '__custom__'
+    ? (document.getElementById('m-custom-category').value.trim() || 'Other')
+    : catVal;
   const notesRaw = document.getElementById('m-notes').value.trim();
   const vendor = {
     id: Date.now().toString(),
@@ -485,7 +503,7 @@ async function saveManual() {
     phone: document.getElementById('m-phone').value.trim() || null,
     email: document.getElementById('m-email').value.trim() || null,
     website: document.getElementById('m-website').value.trim() || null,
-    category: document.getElementById('m-category').value,
+    category,
     notes: notesRaw ? notesRaw.split('\n').map(s => s.trim()).filter(Boolean) : [],
     added: new Date().toISOString()
   };
