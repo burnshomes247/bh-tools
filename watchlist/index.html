@@ -267,11 +267,15 @@ function render() {
 }
 
 async function geocode(address) {
-  const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(address)}`;
+  // Use photon (Komoot) — works reliably on mobile without User-Agent restrictions
+  const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(address)}&limit=1&lang=en`;
   try {
-    const res = await fetch(url, { headers: { 'Accept-Language': 'en-US' } });
+    const res = await fetch(url);
     const data = await res.json();
-    if (data && data[0]) return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+    if (data && data.features && data.features[0]) {
+      const [lng, lat] = data.features[0].geometry.coordinates;
+      return { lat, lng };
+    }
   } catch(e) {}
   return null;
 }
