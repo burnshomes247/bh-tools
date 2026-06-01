@@ -9,65 +9,60 @@
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f4f0; color: #1a1a18; min-height: 100vh; }
-header { background: #0C3C6B; color: #fff; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+header { background: #0C3C6B; color: #fff; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; }
 .header-left { display: flex; align-items: center; gap: 10px; }
 header strong { font-size: 16px; font-weight: 500; }
 header span { font-size: 13px; opacity: 0.65; }
-.header-actions { display: flex; align-items: center; gap: 8px; }
 .icon-btn-header { background: rgba(255,255,255,0.12); border: none; color: #fff; border-radius: 7px; padding: 6px 8px; cursor: pointer; font-size: 17px; display: flex; align-items: center; }
 .icon-btn-header:hover { background: rgba(255,255,255,0.22); }
 .container { max-width: 860px; margin: 0 auto; padding: 24px 16px; }
 .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
 .toolbar input[type="text"] { flex: 1; min-width: 160px; padding: 8px 12px; font-size: 14px; border: 1px solid #d3d1c7; border-radius: 8px; background: #fff; color: #1a1a18; }
-select.filter-select { padding: 8px 12px; font-size: 13px; border: 1px solid #d3d1c7; border-radius: 8px; background: #fff; color: #1a1a18; }
 .btn { padding: 8px 16px; font-size: 13px; border: 1px solid #d3d1c7; border-radius: 8px; background: transparent; color: #1a1a18; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 5px; }
 .btn:hover { background: #e8e7e2; }
 .btn.primary { background: #0C3C6B; color: #fff; border-color: #0C3C6B; }
 .btn.primary:hover { background: #0a3260; }
-.btn.danger { color: #a32d2d; border-color: #f09595; }
-.btn.danger:hover { background: #fcebeb; }
 .property-grid { display: flex; flex-direction: column; gap: 10px; }
-.prop-card { background: #fff; border: 1px solid #ddd; border-radius: 12px; padding: 1rem 1.25rem; transition: border-color 0.15s; }
+.prop-card { background: #fff; border: 1px solid #ddd; border-radius: 12px; padding: 1rem 1.25rem; }
 .prop-card:hover { border-color: #b4b2a9; }
 .prop-top { display: flex; align-items: flex-start; gap: 10px; }
 .prop-info { flex: 1; min-width: 0; }
-.prop-address { font-size: 15px; font-weight: 500; color: #1a1a18; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.prop-address { font-size: 15px; font-weight: 500; color: #1a1a18; }
 .prop-client { font-size: 13px; color: #5f5e5a; margin-top: 3px; display: flex; align-items: center; gap: 4px; }
-.prop-meta { display: flex; align-items: center; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
-.status-badge { font-size: 11px; padding: 2px 9px; border-radius: 6px; font-weight: 500; }
-.s-active { background: #EAF3DE; color: #3B6D11; }
-.s-pending { background: #FAEEDA; color: #854F0B; }
-.s-sold { background: #FCEBEB; color: #A32D2D; }
-.s-off { background: #F1EFE8; color: #5F5E5A; }
-.s-watch { background: #E6F1FB; color: #185FA5; }
-.prop-price { font-size: 13px; color: #5f5e5a; }
 .prop-actions { display: flex; gap: 4px; flex-shrink: 0; }
 .icon-btn { background: none; border: none; cursor: pointer; color: #888; font-size: 18px; padding: 5px; border-radius: 7px; display: flex; align-items: center; }
 .icon-btn:hover { background: #f1efe8; color: #1a1a18; }
 .icon-btn.del:hover { background: #fcebeb; color: #a32d2d; }
-.prop-notes { font-size: 13px; color: #5f5e5a; margin-top: 9px; border-top: 1px solid #eee; padding-top: 9px; line-height: 1.55; }
-.prop-footer { display: flex; gap: 16px; margin-top: 8px; flex-wrap: wrap; align-items: center; }
-.prop-footer span { font-size: 12px; color: #999; }
-.prop-footer a { font-size: 12px; color: #185FA5; text-decoration: none; display: inline-flex; align-items: center; gap: 3px; }
-.prop-footer a:hover { text-decoration: underline; }
+.prop-notes { font-size: 13px; color: #5f5e5a; margin-top: 9px; border-top: 1px solid #eee; padding-top: 9px; line-height: 1.55; white-space: pre-wrap; }
+.prop-links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 9px; }
+.prop-link { font-size: 12px; color: #185FA5; text-decoration: none; display: inline-flex; align-items: center; gap: 3px; background: #e6f1fb; padding: 3px 10px; border-radius: 6px; }
+.prop-link:hover { background: #b5d4f4; }
+.prop-date { font-size: 11px; color: #bbb; margin-top: 8px; }
 .empty { text-align: center; padding: 3rem 1rem; color: #888; font-size: 14px; background: #fff; border-radius: 12px; border: 1px solid #ddd; }
-.sync-bar { font-size: 12px; color: #888; margin-bottom: 14px; display: flex; align-items: center; gap: 6px; min-height: 20px; }
+.sync-bar { font-size: 12px; color: #888; margin-bottom: 14px; min-height: 18px; display: flex; align-items: center; gap: 6px; }
 .sync-bar.err { color: #a32d2d; }
 .sync-bar.ok { color: #3B6D11; }
-/* Modals */
-.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; align-items: flex-start; justify-content: center; padding: 40px 16px; overflow-y: auto; }
+/* Modal */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; align-items: flex-start; justify-content: center; padding: 32px 16px; overflow-y: auto; }
 .modal-overlay.open { display: flex; }
-.modal { background: #fff; border-radius: 12px; border: 1px solid #ddd; padding: 1.5rem; width: 100%; max-width: 520px; }
+.modal { background: #fff; border-radius: 12px; border: 1px solid #ddd; padding: 1.5rem; width: 100%; max-width: 500px; }
 .modal h3 { font-size: 16px; font-weight: 500; margin-bottom: 1.25rem; }
 .form-row { margin-bottom: 14px; }
 .form-row label { display: block; font-size: 13px; color: #5f5e5a; margin-bottom: 4px; }
-.form-row input, .form-row select, .form-row textarea { width: 100%; padding: 8px 10px; font-size: 14px; border: 1px solid #d3d1c7; border-radius: 8px; background: #fff; color: #1a1a18; font-family: inherit; }
-.form-row input:focus, .form-row select:focus, .form-row textarea:focus { outline: none; border-color: #0C3C6B; }
+.form-row input, .form-row textarea { width: 100%; padding: 8px 10px; font-size: 14px; border: 1px solid #d3d1c7; border-radius: 8px; background: #fff; color: #1a1a18; font-family: inherit; }
+.form-row input:focus, .form-row textarea:focus { outline: none; border-color: #0C3C6B; }
 .form-row textarea { resize: vertical; min-height: 80px; }
 .form-row .hint { font-size: 12px; color: #999; margin-top: 3px; }
-.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.links-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 6px; }
+.link-row { display: flex; gap: 6px; align-items: center; }
+.link-row input { flex: 1; }
+.link-remove { background: none; border: none; color: #bbb; cursor: pointer; font-size: 18px; padding: 2px 4px; border-radius: 5px; display: flex; align-items: center; }
+.link-remove:hover { color: #a32d2d; background: #fcebeb; }
+.add-link-btn { font-size: 13px; color: #185FA5; background: none; border: none; cursor: pointer; padding: 2px 0; display: inline-flex; align-items: center; gap: 4px; }
+.add-link-btn:hover { text-decoration: underline; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 1.25rem; }
 .modal-divider { border: none; border-top: 1px solid #eee; margin: 1rem 0; }
+.hint-small { font-size: 12px; color: #999; }
 </style>
 </head>
 <body>
@@ -77,22 +72,12 @@ select.filter-select { padding: 8px 12px; font-size: 13px; border: 1px solid #d3
     <strong>BURNSHOMES</strong>
     <span>/ Watchlist</span>
   </div>
-  <div class="header-actions">
-    <button class="icon-btn-header" onclick="openSettings()" title="Settings"><i class="ti ti-settings"></i></button>
-  </div>
+  <button class="icon-btn-header" onclick="openSettings()" title="Settings"><i class="ti ti-settings"></i></button>
 </header>
 
 <div class="container">
   <div class="toolbar">
-    <input type="text" id="search" placeholder="Search address, client, or notes…" oninput="render()" />
-    <select class="filter-select" id="filterStatus" onchange="render()">
-      <option value="">All statuses</option>
-      <option value="active">Active</option>
-      <option value="pending">Pending</option>
-      <option value="sold">Sold</option>
-      <option value="off">Off market</option>
-      <option value="watch">Watching</option>
-    </select>
+    <input type="text" id="search" placeholder="Search client or address…" oninput="render()" />
     <button class="btn primary" onclick="openAdd()"><i class="ti ti-plus"></i> Add listing</button>
   </div>
   <div class="sync-bar" id="syncBar"></div>
@@ -101,40 +86,31 @@ select.filter-select { padding: 8px 12px; font-size: 13px; border: 1px solid #d3
 
 <!-- ADD / EDIT MODAL -->
 <div class="modal-overlay" id="addModal" onclick="handleOverlayClick(event,'addModal')">
-  <div class="modal">
+  <div class="modal" onclick="event.stopPropagation()">
     <h3 id="modalTitle">Add listing</h3>
-    <div class="form-row">
-      <label>Address</label>
-      <input type="text" id="f-address" placeholder="123 Main St, Arlington, VA" />
-    </div>
+
     <div class="form-row">
       <label>Client name</label>
-      <input type="text" id="f-client" placeholder="e.g. John & Jane Smith" />
+      <input type="text" id="f-client" placeholder="e.g. Jordan, Smith family" />
     </div>
-    <div class="form-grid">
-      <div class="form-row">
-        <label>Status</label>
-        <select id="f-status">
-          <option value="active">Active</option>
-          <option value="pending">Pending</option>
-          <option value="sold">Sold</option>
-          <option value="off">Off market</option>
-          <option value="watch">Watching</option>
-        </select>
-      </div>
-      <div class="form-row">
-        <label>List / Sale price</label>
-        <input type="text" id="f-price" placeholder="$750,000" />
-      </div>
-    </div>
+
     <div class="form-row">
-      <label>Zillow URL</label>
-      <input type="text" id="f-zillow" placeholder="https://www.zillow.com/homedetails/…" />
+      <label>Property address</label>
+      <input type="text" id="f-address" placeholder="123 Main St, Arlington, VA" />
+      <div class="hint">Or paste a Zillow / Homes.com URL below and we'll parse the address.</div>
     </div>
+
+    <div class="form-row">
+      <label>Links <span class="hint-small">(Zillow, Homes.com, MLS, etc.)</span></label>
+      <div class="links-list" id="links-list"></div>
+      <button class="add-link-btn" onclick="addLinkRow('')"><i class="ti ti-plus" style="font-size:13px"></i> Add link</button>
+    </div>
+
     <div class="form-row">
       <label>Notes</label>
-      <textarea id="f-notes" placeholder="Comp rationale, DOM, watch points, client interest…"></textarea>
+      <textarea id="f-notes" placeholder="Anything worth tracking — price range, motivation, timing, comp notes…"></textarea>
     </div>
+
     <div class="modal-actions">
       <button class="btn" onclick="closeModal('addModal')">Cancel</button>
       <button class="btn primary" onclick="saveProperty()">Save</button>
@@ -144,12 +120,12 @@ select.filter-select { padding: 8px 12px; font-size: 13px; border: 1px solid #d3
 
 <!-- SETTINGS MODAL -->
 <div class="modal-overlay" id="settingsModal" onclick="handleOverlayClick(event,'settingsModal')">
-  <div class="modal">
+  <div class="modal" onclick="event.stopPropagation()">
     <h3>Settings</h3>
     <div class="form-row">
       <label>GitHub personal access token</label>
       <input type="password" id="s-token" placeholder="ghp_…" />
-      <div class="hint">Needs Contents: Read & Write on your bh-tools repo.</div>
+      <div class="hint">Contents: Read & Write on bh-tools repo.</div>
     </div>
     <div class="form-row">
       <label>GitHub repo</label>
@@ -160,12 +136,10 @@ select.filter-select { padding: 8px 12px; font-size: 13px; border: 1px solid #d3
       <input type="text" id="s-path" placeholder="watchlist/watchlist.json" />
     </div>
     <hr class="modal-divider" />
-    <div class="form-row">
-      <label style="font-size:12px; color:#999;">These settings are saved in your browser's localStorage on this device. Re-enter on any new device.</label>
-    </div>
+    <div class="hint-small" style="color:#999; margin-bottom:1rem;">Saved in this browser's localStorage. Re-enter on any new device.</div>
     <div class="modal-actions">
       <button class="btn" onclick="closeModal('settingsModal')">Cancel</button>
-      <button class="btn primary" onclick="saveSettings()">Save settings</button>
+      <button class="btn primary" onclick="saveSettings()">Save</button>
     </div>
   </div>
 </div>
@@ -174,14 +148,11 @@ select.filter-select { padding: 8px 12px; font-size: 13px; border: 1px solid #d3
 const SETTINGS_KEY = 'bh_watchlist_settings';
 let props = [];
 let editId = null;
-let isSaving = false;
 
 function getSettings() {
   try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'); } catch(e) { return {}; }
 }
-function saveSettingsToStorage(s) {
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
-}
+function storeSettings(s) { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); }
 
 function setSyncBar(msg, type) {
   const el = document.getElementById('syncBar');
@@ -189,10 +160,44 @@ function setSyncBar(msg, type) {
   el.className = 'sync-bar' + (type ? ' ' + type : '');
 }
 
+// Parse address from Zillow or Homes.com URL slug
+function parseAddressFromUrl(url) {
+  try {
+    url = url.trim();
+    // Zillow: /homedetails/123-Main-St-City-ST-12345/
+    let m = url.match(/zillow\.com\/homedetails\/([^\/]+)/i);
+    if (m) {
+      return m[1]
+        .replace(/-(\d{5,}).*$/, '')   // remove zip+zpid tail
+        .replace(/-/g, ' ')
+        .replace(/\b([a-z])/g, c => c.toUpperCase())
+        .trim();
+    }
+    // Homes.com: /homes/123-Main-St_City_ST_12345/
+    m = url.match(/homes\.com\/[^\/]*\/([^\/]+)/i);
+    if (m) {
+      return m[1]
+        .replace(/_\d{5,}.*$/, '')
+        .replace(/[_-]/g, ' ')
+        .replace(/\b([a-z])/g, c => c.toUpperCase())
+        .trim();
+    }
+  } catch(e) {}
+  return '';
+}
+
+function linkLabel(url) {
+  if (/zillow\.com/i.test(url)) return 'Zillow';
+  if (/homes\.com/i.test(url)) return 'Homes.com';
+  if (/redfin\.com/i.test(url)) return 'Redfin';
+  if (/realtor\.com/i.test(url)) return 'Realtor.com';
+  try { return new URL(url).hostname.replace(/^www\./,''); } catch(e) { return 'Link'; }
+}
+
 async function loadFromGitHub() {
   const s = getSettings();
   if (!s.token || !s.repo || !s.path) {
-    setSyncBar('⚙ Configure GitHub settings to sync across devices.', '');
+    setSyncBar('⚙ Tap Settings to connect GitHub sync.');
     return;
   }
   setSyncBar('Loading…');
@@ -200,18 +205,13 @@ async function loadFromGitHub() {
     const res = await fetch(`https://api.github.com/repos/${s.repo}/contents/${s.path}`, {
       headers: { Authorization: `token ${s.token}`, Accept: 'application/vnd.github.v3+json' }
     });
-    if (res.status === 404) {
-      props = [];
-      setSyncBar('No data file yet — add your first listing to create it.', '');
-      render();
-      return;
-    }
-    if (!res.ok) throw new Error('GitHub error ' + res.status);
+    if (res.status === 404) { props = []; setSyncBar('Ready — add your first listing.'); render(); return; }
+    if (!res.ok) throw new Error('GitHub ' + res.status);
     const data = await res.json();
     props = JSON.parse(atob(data.content.replace(/\n/g,'')));
-    setSyncBar('Synced · ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}), 'ok');
+    setSyncBar('Synced · ' + new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}), 'ok');
   } catch(e) {
-    setSyncBar('Could not load from GitHub: ' + e.message, 'err');
+    setSyncBar('Load error: ' + e.message, 'err');
   }
   render();
 }
@@ -219,14 +219,13 @@ async function loadFromGitHub() {
 async function saveToGitHub() {
   const s = getSettings();
   if (!s.token || !s.repo || !s.path) return;
-  isSaving = true;
   setSyncBar('Saving…');
   try {
     let sha = null;
     const check = await fetch(`https://api.github.com/repos/${s.repo}/contents/${s.path}`, {
       headers: { Authorization: `token ${s.token}`, Accept: 'application/vnd.github.v3+json' }
     });
-    if (check.ok) { const d = await check.json(); sha = d.sha; }
+    if (check.ok) { sha = (await check.json()).sha; }
     const body = { message: 'Update watchlist', content: btoa(unescape(encodeURIComponent(JSON.stringify(props, null, 2)))) };
     if (sha) body.sha = sha;
     const res = await fetch(`https://api.github.com/repos/${s.repo}/contents/${s.path}`, {
@@ -234,106 +233,105 @@ async function saveToGitHub() {
       headers: { Authorization: `token ${s.token}`, Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
-    if (!res.ok) throw new Error('GitHub error ' + res.status);
-    setSyncBar('Saved · ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}), 'ok');
+    if (!res.ok) throw new Error('GitHub ' + res.status);
+    setSyncBar('Saved · ' + new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}), 'ok');
   } catch(e) {
-    setSyncBar('Save failed: ' + e.message, 'err');
+    setSyncBar('Save error: ' + e.message, 'err');
   }
-  isSaving = false;
-}
-
-function statusLabel(s) {
-  return { active:'Active', pending:'Pending', sold:'Sold', off:'Off market', watch:'Watching' }[s] || s;
-}
-function statusClass(s) {
-  return { active:'s-active', pending:'s-pending', sold:'s-sold', off:'s-off', watch:'s-watch' }[s] || 's-watch';
 }
 
 function render() {
   const list = document.getElementById('list');
   const q = (document.getElementById('search').value || '').toLowerCase();
-  const sf = document.getElementById('filterStatus').value;
-  const filtered = props.filter(p => {
-    const match = !q || p.address.toLowerCase().includes(q) || (p.client||'').toLowerCase().includes(q) || (p.notes||'').toLowerCase().includes(q);
-    return match && (!sf || p.status === sf);
-  });
+  const filtered = props.filter(p =>
+    !q || (p.address||'').toLowerCase().includes(q) || (p.client||'').toLowerCase().includes(q) || (p.notes||'').toLowerCase().includes(q)
+  );
   if (!filtered.length) {
-    list.innerHTML = `<div class="empty"><i class="ti ti-home-search" style="font-size:32px;display:block;margin-bottom:10px"></i>${props.length ? 'No matches for current filters.' : 'No listings yet — tap Add listing to get started.'}</div>`;
+    list.innerHTML = `<div class="empty"><i class="ti ti-home-search" style="font-size:32px;display:block;margin-bottom:10px"></i>${props.length ? 'No matches.' : 'No listings yet — tap Add listing to get started.'}</div>`;
     return;
   }
   list.innerHTML = filtered.map(p => `
     <div class="prop-card">
       <div class="prop-top">
         <div class="prop-info">
-          <div class="prop-address" title="${esc(p.address)}">${esc(p.address)}</div>
+          <div class="prop-address">${esc(p.address || '—')}</div>
           ${p.client ? `<div class="prop-client"><i class="ti ti-user" style="font-size:13px"></i>${esc(p.client)}</div>` : ''}
-          <div class="prop-meta">
-            <span class="status-badge ${statusClass(p.status)}">${statusLabel(p.status)}</span>
-            ${p.price ? `<span class="prop-price">${esc(p.price)}</span>` : ''}
-          </div>
         </div>
         <div class="prop-actions">
           <button class="icon-btn" onclick="openEdit('${p.id}')" title="Edit"><i class="ti ti-edit"></i></button>
-          <button class="icon-btn del" onclick="deleteProperty('${p.id}')" title="Delete"><i class="ti ti-trash"></i></button>
+          <button class="icon-btn del" onclick="deleteProp('${p.id}')" title="Delete"><i class="ti ti-trash"></i></button>
         </div>
       </div>
       ${p.notes ? `<div class="prop-notes">${esc(p.notes)}</div>` : ''}
-      <div class="prop-footer">
-        ${p.zillow ? `<a href="${esc(p.zillow)}" target="_blank" rel="noopener"><i class="ti ti-external-link" style="font-size:13px"></i> Zillow</a>` : ''}
-        <span>Added ${fmtDate(p.added)}</span>
-        ${p.updated !== p.added ? `<span>Updated ${fmtDate(p.updated)}</span>` : ''}
-      </div>
+      ${(p.links||[]).length ? `<div class="prop-links">${(p.links||[]).map(l => `<a class="prop-link" href="${esc(l)}" target="_blank" rel="noopener"><i class="ti ti-external-link" style="font-size:12px"></i>${linkLabel(l)}</a>`).join('')}</div>` : ''}
+      <div class="prop-date">Added ${fmtDate(p.added)}${p.updated !== p.added ? ' · Updated ' + fmtDate(p.updated) : ''}</div>
     </div>
   `).join('');
 }
 
-function esc(s) {
-  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmtDate(ts) { return new Date(ts).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
+
+// Link rows in modal
+function addLinkRow(val) {
+  const ll = document.getElementById('links-list');
+  const row = document.createElement('div');
+  row.className = 'link-row';
+  row.innerHTML = `<input type="text" placeholder="https://www.zillow.com/homedetails/…" value="${esc(val)}" oninput="autoFillAddress(this)" /><button class="link-remove" onclick="this.parentElement.remove()" title="Remove"><i class="ti ti-x"></i></button>`;
+  ll.appendChild(row);
+  row.querySelector('input').focus();
 }
-function fmtDate(ts) {
-  return new Date(ts).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+
+function autoFillAddress(input) {
+  const addr = parseAddressFromUrl(input.value);
+  if (addr) {
+    const f = document.getElementById('f-address');
+    if (!f.value || f.dataset.autofilled === '1') { f.value = addr; f.dataset.autofilled = '1'; }
+  }
+}
+
+function getLinkValues() {
+  return Array.from(document.querySelectorAll('#links-list .link-row input'))
+    .map(i => i.value.trim()).filter(Boolean);
 }
 
 function openAdd() {
   editId = null;
   document.getElementById('modalTitle').textContent = 'Add listing';
-  ['f-address','f-client','f-price','f-zillow','f-notes'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('f-status').value = 'active';
+  document.getElementById('f-client').value = '';
+  document.getElementById('f-address').value = '';
+  document.getElementById('f-address').dataset.autofilled = '';
+  document.getElementById('f-notes').value = '';
+  document.getElementById('links-list').innerHTML = '';
+  addLinkRow('');
   document.getElementById('addModal').classList.add('open');
+  setTimeout(() => document.getElementById('f-client').focus(), 100);
 }
+
 function openEdit(id) {
   editId = id;
   const p = props.find(x => x.id === id);
   if (!p) return;
   document.getElementById('modalTitle').textContent = 'Edit listing';
-  document.getElementById('f-address').value = p.address;
   document.getElementById('f-client').value = p.client || '';
-  document.getElementById('f-status').value = p.status;
-  document.getElementById('f-price').value = p.price || '';
-  document.getElementById('f-zillow').value = p.zillow || '';
+  document.getElementById('f-address').value = p.address || '';
+  document.getElementById('f-address').dataset.autofilled = '';
   document.getElementById('f-notes').value = p.notes || '';
+  document.getElementById('links-list').innerHTML = '';
+  (p.links||[]).forEach(l => addLinkRow(l));
+  if (!(p.links||[]).length) addLinkRow('');
   document.getElementById('addModal').classList.add('open');
 }
-function closeModal(id) {
-  document.getElementById(id).classList.remove('open');
-  editId = null;
-}
-function handleOverlayClick(e, id) {
-  if (e.target === document.getElementById(id)) closeModal(id);
-}
+
+function closeModal(id) { document.getElementById(id).classList.remove('open'); editId = null; }
+function handleOverlayClick(e, id) { if (e.target === document.getElementById(id)) closeModal(id); }
 
 async function saveProperty() {
   const address = document.getElementById('f-address').value.trim();
-  if (!address) { alert('Address is required.'); return; }
+  const client = document.getElementById('f-client').value.trim();
+  if (!address && !client) { alert('Enter at least a client name or address.'); return; }
   const now = Date.now();
-  const data = {
-    address,
-    client: document.getElementById('f-client').value.trim(),
-    status: document.getElementById('f-status').value,
-    price: document.getElementById('f-price').value.trim(),
-    zillow: document.getElementById('f-zillow').value.trim(),
-    notes: document.getElementById('f-notes').value.trim(),
-  };
+  const data = { address, client, notes: document.getElementById('f-notes').value.trim(), links: getLinkValues() };
   if (editId) {
     const idx = props.findIndex(p => p.id === editId);
     if (idx > -1) props[idx] = { ...props[idx], ...data, updated: now };
@@ -345,8 +343,8 @@ async function saveProperty() {
   await saveToGitHub();
 }
 
-async function deleteProperty(id) {
-  if (!confirm('Remove this listing from your watchlist?')) return;
+async function deleteProp(id) {
+  if (!confirm('Remove this listing?')) return;
   props = props.filter(p => p.id !== id);
   render();
   await saveToGitHub();
@@ -360,12 +358,7 @@ function openSettings() {
   document.getElementById('settingsModal').classList.add('open');
 }
 function saveSettings() {
-  const s = {
-    token: document.getElementById('s-token').value.trim(),
-    repo: document.getElementById('s-repo').value.trim(),
-    path: document.getElementById('s-path').value.trim(),
-  };
-  saveSettingsToStorage(s);
+  storeSettings({ token: document.getElementById('s-token').value.trim(), repo: document.getElementById('s-repo').value.trim(), path: document.getElementById('s-path').value.trim() });
   closeModal('settingsModal');
   loadFromGitHub();
 }
