@@ -373,6 +373,22 @@ async function addVendor(vendor) {
   return vendors;
 }
 
+function copyToClipboard(text) {
+  const el = document.createElement('textarea');
+  el.value = text;
+  el.style.position = 'fixed';
+  el.style.left = '-9999px';
+  el.style.top = '-9999px';
+  document.body.appendChild(el);
+  el.focus();
+  el.select();
+  document.execCommand('copy');
+  document.body.removeChild(el);
+  const toast = document.getElementById('copy-toast');
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
 function shareVendor(id) {
   const vendors = loadLocalVendors();
   const v = vendors.find(item => item.id === id);
@@ -384,18 +400,11 @@ function shareVendor(id) {
   if (v.email) parts.push(v.email);
   if (v.website) parts.push(v.website);
   const text = parts.join('\n');
-  try {
-    if (navigator.share) {
-      navigator.share({ text });
-    } else {
-      navigator.clipboard.writeText(text).then(() => {
-        const toast = document.getElementById('copy-toast');
-        toast.classList.add('show');
-        setTimeout(() => toast.classList.remove('show'), 2000);
-      });
-    }
-  } catch(e) {
-    prompt('Copy this contact info:', text);
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  if (isMobile && navigator.share) {
+    navigator.share({ text }).catch(() => copyToClipboard(text));
+  } else {
+    copyToClipboard(text);
   }
 }
 
