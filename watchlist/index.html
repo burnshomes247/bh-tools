@@ -303,8 +303,12 @@ async function showMap() {
   const myToken = currentMapToken; // snapshot — if this changes mid-run, we bail
   const filtered = getFiltered();
 
-  // Clear existing markers immediately
-  mapMarkers.forEach(m => m.remove());
+  // Always clear ALL markers at start of every run, including orphans from cancelled runs
+  if (leafletMap) {
+    leafletMap.eachLayer(layer => {
+      if (layer instanceof L.Marker) leafletMap.removeLayer(layer);
+    });
+  }
   mapMarkers = [];
 
   if (!leafletMap) {
