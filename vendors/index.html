@@ -311,7 +311,48 @@ function openConfig() {
 }
 
 // --- MODAL HELPERS ---
-function openAdd() { document.getElementById('add-modal').classList.add('open'); }
+let editingVendorId = null;
+
+function editVendor(id) {
+  const vendors = loadLocalVendors();
+  const v = vendors.find(item => item.id === id);
+  if (!v) return;
+  editingVendorId = id;
+
+  // Switch to manual tab and pre-fill fields
+  switchTab('manual');
+  document.getElementById('m-company').value = v.company || '';
+  document.getElementById('m-contact').value = v.contact_name || '';
+  document.getElementById('m-phone').value = v.phone || '';
+  document.getElementById('m-email').value = v.email || '';
+  document.getElementById('m-website').value = v.website || '';
+  document.getElementById('m-notes').value = v.notes ? v.notes.join('\n') : '';
+
+  // Set category — if it's a known one select it, otherwise use custom
+  const select = document.getElementById('m-category');
+  const knownCats = Array.from(select.options).map(o => o.value);
+  if (knownCats.includes(v.category)) {
+    select.value = v.category;
+    toggleCustomCat(v.category);
+  } else {
+    select.value = '__custom__';
+    toggleCustomCat('__custom__');
+    document.getElementById('m-custom-category').value = v.category;
+  }
+
+  document.querySelector('#tab-manual .btn-submit').textContent = 'Save changes';
+  document.getElementById('add-modal').classList.add('open');
+}
+
+function openAdd() {
+  editingVendorId = null;
+  document.querySelector('#tab-manual .btn-submit').textContent = 'Save vendor';
+  document.getElementById('m-category').value = 'Appraiser';
+  toggleCustomCat('Appraiser');
+  ['m-company','m-contact','m-phone','m-email','m-website','m-notes'].forEach(id => document.getElementById(id).value = '');
+  switchTab('paste');
+  document.getElementById('add-modal').classList.add('open');
+}
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 function handleOverlay(e, id) { if (e.target === document.getElementById(id)) closeModal(id); }
 function showStatus(id, msg, type) {
@@ -507,8 +548,18 @@ async function saveManual() {
     notes: notesRaw ? notesRaw.split('\n').map(s => s.trim()).filter(Boolean) : [],
     added: new Date().toISOString()
   };
-  await addVendor(vendor);
-  showStatus('manual-status', 'Vendor saved!', 'ok');
+  if (editingVendorId) {
+    const vendors = loadLocalVendors();
+    const idx = vendors.findIndex(item => item.id === editingVendorId);
+    if (idx > -1) { vendors[idx] = { ...vendors[idx], ...vendor, id: editingVendorId }; }
+    saveLocalVendors(vendors);
+    await pushToGitHub(vendors);
+    editingVendorId = null;
+  } else {
+    await addVendor(vendor);
+  }
+  showStatus('manual-status', 'Saved!', 'ok');
+  document.querySelector('#tab-manual .btn-submit').textContent = 'Save vendor';
   ['m-company','m-contact','m-phone','m-email','m-website','m-notes'].forEach(id => document.getElementById(id).value = '');
   setTimeout(() => { closeModal('add-modal'); render(); }, 800);
 }
@@ -604,6 +655,7 @@ function render() {
       card.innerHTML = `
         <div class="card-actions">
           <button class="card-btn share-btn" title="Copy contact info"><i class="ti ti-copy"></i></button>
+          <button class="card-btn edit-btn" title="Edit vendor"><i class="ti ti-pencil"></i></button>
           <button class="card-btn delete-btn" title="Remove"><i class="ti ti-x"></i></button>
         </div>
         <div class="card-top">
@@ -618,6 +670,7 @@ function render() {
       `;
       grid.appendChild(card);
       card.querySelector('.share-btn').addEventListener('click', () => shareVendor(v.id));
+      card.querySelector('.edit-btn').addEventListener('click', () => editVendor(v.id));
       card.querySelector('.delete-btn').addEventListener('click', () => deleteVendor(v.id));
     }
     section.appendChild(grid);
