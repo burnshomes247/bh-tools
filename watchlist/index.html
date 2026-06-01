@@ -6,6 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>BURNSHOMES Watchlist</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f4f0; color: #1a1a18; min-height: 100vh; }
@@ -18,10 +19,12 @@ header span { font-size: 13px; opacity: 0.65; }
 .container { max-width: 860px; margin: 0 auto; padding: 24px 16px; }
 .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
 .toolbar input[type="text"] { flex: 1; min-width: 160px; padding: 8px 12px; font-size: 14px; border: 1px solid #d3d1c7; border-radius: 8px; background: #fff; color: #1a1a18; }
+.toolbar input[type="text"]:focus { outline: none; border-color: #0C3C6B; }
 .btn { padding: 8px 16px; font-size: 13px; border: 1px solid #d3d1c7; border-radius: 8px; background: transparent; color: #1a1a18; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 5px; }
 .btn:hover { background: #e8e7e2; }
 .btn.primary { background: #0C3C6B; color: #fff; border-color: #0C3C6B; }
 .btn.primary:hover { background: #0a3260; }
+.btn.active-view { background: #0C3C6B; color: #fff; border-color: #0C3C6B; }
 .property-grid { display: flex; flex-direction: column; gap: 10px; }
 .prop-card { background: #fff; border: 1px solid #ddd; border-radius: 12px; padding: 1rem 1.25rem; }
 .prop-card:hover { border-color: #b4b2a9; }
@@ -42,8 +45,19 @@ header span { font-size: 13px; opacity: 0.65; }
 .sync-bar { font-size: 12px; color: #888; margin-bottom: 14px; min-height: 18px; display: flex; align-items: center; gap: 6px; }
 .sync-bar.err { color: #a32d2d; }
 .sync-bar.ok { color: #3B6D11; }
+/* Map */
+#map-container { display: none; border-radius: 12px; overflow: hidden; border: 1px solid #ddd; margin-bottom: 12px; }
+#map { height: 480px; width: 100%; }
+.map-status { font-size: 12px; color: #888; margin-bottom: 10px; min-height: 18px; }
+.leaflet-popup-content { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; line-height: 1.5; min-width: 180px; }
+.popup-address { font-weight: 500; font-size: 14px; margin-bottom: 4px; color: #1a1a18; }
+.popup-client { color: #5f5e5a; margin-bottom: 6px; }
+.popup-notes { color: #5f5e5a; margin-bottom: 6px; font-size: 12px; border-top: 1px solid #eee; padding-top: 6px; }
+.popup-links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.popup-link { font-size: 12px; color: #185FA5; text-decoration: none; background: #e6f1fb; padding: 2px 8px; border-radius: 5px; display: inline-flex; align-items: center; gap: 3px; }
+.popup-link:hover { background: #b5d4f4; }
 /* Modal */
-.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; align-items: flex-start; justify-content: center; padding: 32px 16px; overflow-y: auto; }
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1000; align-items: flex-start; justify-content: center; padding: 32px 16px; overflow-y: auto; }
 .modal-overlay.open { display: flex; }
 .modal { background: #fff; border-radius: 12px; border: 1px solid #ddd; padding: 1.5rem; width: 100%; max-width: 500px; }
 .modal h3 { font-size: 16px; font-weight: 500; margin-bottom: 1.25rem; }
@@ -77,10 +91,13 @@ header span { font-size: 13px; opacity: 0.65; }
 
 <div class="container">
   <div class="toolbar">
-    <input type="text" id="search" placeholder="Search client or address…" oninput="render()" />
+    <input type="text" id="search" placeholder="Search client or address…" oninput="onSearch()" />
+    <button class="btn" id="mapBtn" onclick="toggleMap()"><i class="ti ti-map-2"></i> Map view</button>
     <button class="btn primary" onclick="openAdd()"><i class="ti ti-plus"></i> Add listing</button>
   </div>
   <div class="sync-bar" id="syncBar"></div>
+  <div class="map-status" id="mapStatus"></div>
+  <div id="map-container"><div id="map"></div></div>
   <div class="property-grid" id="list"></div>
 </div>
 
@@ -88,29 +105,24 @@ header span { font-size: 13px; opacity: 0.65; }
 <div class="modal-overlay" id="addModal" onclick="handleOverlayClick(event,'addModal')">
   <div class="modal" onclick="event.stopPropagation()">
     <h3 id="modalTitle">Add listing</h3>
-
     <div class="form-row">
       <label>Client name</label>
       <input type="text" id="f-client" placeholder="e.g. Jordan, Smith family" />
     </div>
-
     <div class="form-row">
       <label>Property address</label>
       <input type="text" id="f-address" placeholder="123 Main St, Arlington, VA" />
-      <div class="hint">Or paste a Zillow / Homes.com URL below and we'll parse the address.</div>
+      <div class="hint">Or paste a Zillow / Homes.com URL in Links below and the address will auto-fill.</div>
     </div>
-
     <div class="form-row">
       <label>Links <span class="hint-small">(Zillow, Homes.com, MLS, etc.)</span></label>
       <div class="links-list" id="links-list"></div>
       <button class="add-link-btn" onclick="addLinkRow('')"><i class="ti ti-plus" style="font-size:13px"></i> Add link</button>
     </div>
-
     <div class="form-row">
       <label>Notes</label>
-      <textarea id="f-notes" placeholder="Anything worth tracking — price range, motivation, timing, comp notes…"></textarea>
+      <textarea id="f-notes" placeholder="Price range, motivation, timing, comp notes…"></textarea>
     </div>
-
     <div class="modal-actions">
       <button class="btn" onclick="closeModal('addModal')">Cancel</button>
       <button class="btn primary" onclick="saveProperty()">Save</button>
@@ -136,7 +148,7 @@ header span { font-size: 13px; opacity: 0.65; }
       <input type="text" id="s-path" placeholder="watchlist/watchlist.json" />
     </div>
     <hr class="modal-divider" />
-    <div class="hint-small" style="color:#999; margin-bottom:1rem;">Saved in this browser's localStorage. Re-enter on any new device.</div>
+    <div class="hint-small" style="color:#999;margin-bottom:1rem;">Saved in this browser's localStorage. Re-enter on any new device.</div>
     <div class="modal-actions">
       <button class="btn" onclick="closeModal('settingsModal')">Cancel</button>
       <button class="btn primary" onclick="saveSettings()">Save</button>
@@ -144,10 +156,14 @@ header span { font-size: 13px; opacity: 0.65; }
   </div>
 </div>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const SETTINGS_KEY = 'bh_watchlist_settings';
 let props = [];
 let editId = null;
+let mapMode = false;
+let leafletMap = null;
+let mapMarkers = [];
 
 function getSettings() {
   try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'); } catch(e) { return {}; }
@@ -159,47 +175,11 @@ function setSyncBar(msg, type) {
   el.textContent = msg;
   el.className = 'sync-bar' + (type ? ' ' + type : '');
 }
-
-// Parse address from Zillow or Homes.com URL slug
-function parseAddressFromUrl(url) {
-  try {
-    url = url.trim();
-    // Zillow: /homedetails/123-Main-St-City-ST-12345/
-    let m = url.match(/zillow\.com\/homedetails\/([^\/]+)/i);
-    if (m) {
-      return m[1]
-        .replace(/-(\d{5,}).*$/, '')   // remove zip+zpid tail
-        .replace(/-/g, ' ')
-        .replace(/\b([a-z])/g, c => c.toUpperCase())
-        .trim();
-    }
-    // Homes.com: /homes/123-Main-St_City_ST_12345/
-    m = url.match(/homes\.com\/[^\/]*\/([^\/]+)/i);
-    if (m) {
-      return m[1]
-        .replace(/_\d{5,}.*$/, '')
-        .replace(/[_-]/g, ' ')
-        .replace(/\b([a-z])/g, c => c.toUpperCase())
-        .trim();
-    }
-  } catch(e) {}
-  return '';
-}
-
-function linkLabel(url) {
-  if (/zillow\.com/i.test(url)) return 'Zillow';
-  if (/homes\.com/i.test(url)) return 'Homes.com';
-  if (/redfin\.com/i.test(url)) return 'Redfin';
-  if (/realtor\.com/i.test(url)) return 'Realtor.com';
-  try { return new URL(url).hostname.replace(/^www\./,''); } catch(e) { return 'Link'; }
-}
+function setMapStatus(msg) { document.getElementById('mapStatus').textContent = msg; }
 
 async function loadFromGitHub() {
   const s = getSettings();
-  if (!s.token || !s.repo || !s.path) {
-    setSyncBar('⚙ Tap Settings to connect GitHub sync.');
-    return;
-  }
+  if (!s.token || !s.repo || !s.path) { setSyncBar('⚙ Tap Settings to connect GitHub sync.'); render(); return; }
   setSyncBar('Loading…');
   try {
     const res = await fetch(`https://api.github.com/repos/${s.repo}/contents/${s.path}`, {
@@ -210,9 +190,7 @@ async function loadFromGitHub() {
     const data = await res.json();
     props = JSON.parse(atob(data.content.replace(/\n/g,'')));
     setSyncBar('Synced · ' + new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}), 'ok');
-  } catch(e) {
-    setSyncBar('Load error: ' + e.message, 'err');
-  }
+  } catch(e) { setSyncBar('Load error: ' + e.message, 'err'); }
   render();
 }
 
@@ -235,17 +213,32 @@ async function saveToGitHub() {
     });
     if (!res.ok) throw new Error('GitHub ' + res.status);
     setSyncBar('Saved · ' + new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}), 'ok');
-  } catch(e) {
-    setSyncBar('Save error: ' + e.message, 'err');
-  }
+  } catch(e) { setSyncBar('Save error: ' + e.message, 'err'); }
+}
+
+function getFiltered() {
+  const q = (document.getElementById('search').value || '').toLowerCase();
+  return props.filter(p =>
+    !q || (p.address||'').toLowerCase().includes(q) || (p.client||'').toLowerCase().includes(q) || (p.notes||'').toLowerCase().includes(q)
+  );
+}
+
+function onSearch() {
+  if (mapMode) showMap();
+  else render();
+}
+
+function linkLabel(url) {
+  if (/zillow\.com/i.test(url)) return 'Zillow';
+  if (/homes\.com/i.test(url)) return 'Homes.com';
+  if (/redfin\.com/i.test(url)) return 'Redfin';
+  if (/realtor\.com/i.test(url)) return 'Realtor.com';
+  try { return new URL(url).hostname.replace(/^www\./,''); } catch(e) { return 'Link'; }
 }
 
 function render() {
   const list = document.getElementById('list');
-  const q = (document.getElementById('search').value || '').toLowerCase();
-  const filtered = props.filter(p =>
-    !q || (p.address||'').toLowerCase().includes(q) || (p.client||'').toLowerCase().includes(q) || (p.notes||'').toLowerCase().includes(q)
-  );
+  const filtered = getFiltered();
   if (!filtered.length) {
     list.innerHTML = `<div class="empty"><i class="ti ti-home-search" style="font-size:32px;display:block;margin-bottom:10px"></i>${props.length ? 'No matches.' : 'No listings yet — tap Add listing to get started.'}</div>`;
     return;
@@ -263,16 +256,109 @@ function render() {
         </div>
       </div>
       ${p.notes ? `<div class="prop-notes">${esc(p.notes)}</div>` : ''}
-      ${(p.links||[]).length ? `<div class="prop-links">${(p.links||[]).map(l => `<a class="prop-link" href="${esc(l)}" target="_blank" rel="noopener"><i class="ti ti-external-link" style="font-size:12px"></i>${linkLabel(l)}</a>`).join('')}</div>` : ''}
+      ${(p.links||[]).length ? `<div class="prop-links">${(p.links||[]).map(l=>`<a class="prop-link" href="${esc(l)}" target="_blank" rel="noopener"><i class="ti ti-external-link" style="font-size:12px"></i>${linkLabel(l)}</a>`).join('')}</div>` : ''}
       <div class="prop-date">Added ${fmtDate(p.added)}${p.updated !== p.added ? ' · Updated ' + fmtDate(p.updated) : ''}</div>
     </div>
   `).join('');
 }
 
-function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function fmtDate(ts) { return new Date(ts).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
+// MAP
+async function geocode(address) {
+  const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(address)}`;
+  const res = await fetch(url, { headers: { 'Accept-Language': 'en-US' } });
+  const data = await res.json();
+  if (data && data[0]) return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+  return null;
+}
 
-// Link rows in modal
+async function toggleMap() {
+  mapMode = !mapMode;
+  const btn = document.getElementById('mapBtn');
+  const mc = document.getElementById('map-container');
+  const listEl = document.getElementById('list');
+  if (mapMode) {
+    btn.classList.add('active-view');
+    btn.innerHTML = '<i class="ti ti-list"></i> List view';
+    mc.style.display = 'block';
+    listEl.style.display = 'none';
+    await showMap();
+  } else {
+    btn.classList.remove('active-view');
+    btn.innerHTML = '<i class="ti ti-map-2"></i> Map view';
+    mc.style.display = 'none';
+    listEl.style.display = 'flex';
+    setMapStatus('');
+    render();
+  }
+}
+
+async function showMap() {
+  const filtered = getFiltered();
+  setMapStatus('');
+
+  if (!leafletMap) {
+    leafletMap = L.map('map').setView([38.9, -77.03], 10);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      maxZoom: 19
+    }).addTo(leafletMap);
+  }
+
+  // Clear old markers
+  mapMarkers.forEach(m => m.remove());
+  mapMarkers = [];
+
+  const withAddresses = filtered.filter(p => p.address && p.address.trim());
+  if (!withAddresses.length) { setMapStatus('No listings with addresses to map.'); return; }
+
+  setMapStatus(`Mapping ${withAddresses.length} listing${withAddresses.length !== 1 ? 's' : ''}…`);
+
+  const bounds = [];
+  for (const p of withAddresses) {
+    await new Promise(r => setTimeout(r, 300)); // respect Nominatim rate limit
+    const coords = await geocode(p.address);
+    if (!coords) continue;
+    bounds.push([coords.lat, coords.lng]);
+
+    const linksHtml = (p.links||[]).map(l =>
+      `<a class="popup-link" href="${esc(l)}" target="_blank" rel="noopener"><i class="ti ti-external-link" style="font-size:11px"></i>${linkLabel(l)}</a>`
+    ).join('');
+
+    const popup = `
+      <div class="popup-address">${esc(p.address)}</div>
+      ${p.client ? `<div class="popup-client"><i class="ti ti-user" style="font-size:12px"></i> ${esc(p.client)}</div>` : ''}
+      ${p.notes ? `<div class="popup-notes">${esc(p.notes)}</div>` : ''}
+      ${linksHtml ? `<div class="popup-links">${linksHtml}</div>` : ''}
+    `;
+
+    const marker = L.marker([coords.lat, coords.lng])
+      .addTo(leafletMap)
+      .bindPopup(popup, { maxWidth: 260 });
+    mapMarkers.push(marker);
+  }
+
+  if (bounds.length) {
+    leafletMap.fitBounds(bounds, { padding: [40, 40] });
+    setMapStatus(`${bounds.length} of ${withAddresses.length} listing${withAddresses.length !== 1 ? 's' : ''} mapped.`);
+  } else {
+    setMapStatus('Could not geocode any addresses. Check that addresses include city and state.');
+  }
+
+  setTimeout(() => leafletMap.invalidateSize(), 100);
+}
+
+// URL parsing
+function parseAddressFromUrl(url) {
+  try {
+    url = url.trim();
+    let m = url.match(/zillow\.com\/homedetails\/([^\/]+)/i);
+    if (m) return m[1].replace(/-(\d{5,}).*$/, '').replace(/-/g,' ').replace(/\b([a-z])/g,c=>c.toUpperCase()).trim();
+    m = url.match(/homes\.com\/[^\/]*\/([^\/]+)/i);
+    if (m) return m[1].replace(/_\d{5,}.*$/,'').replace(/[_-]/g,' ').replace(/\b([a-z])/g,c=>c.toUpperCase()).trim();
+  } catch(e) {}
+  return '';
+}
+
 function addLinkRow(val) {
   const ll = document.getElementById('links-list');
   const row = document.createElement('div');
@@ -291,8 +377,7 @@ function autoFillAddress(input) {
 }
 
 function getLinkValues() {
-  return Array.from(document.querySelectorAll('#links-list .link-row input'))
-    .map(i => i.value.trim()).filter(Boolean);
+  return Array.from(document.querySelectorAll('#links-list .link-row input')).map(i=>i.value.trim()).filter(Boolean);
 }
 
 function openAdd() {
@@ -340,6 +425,7 @@ async function saveProperty() {
   }
   closeModal('addModal');
   render();
+  if (mapMode) await showMap();
   await saveToGitHub();
 }
 
@@ -347,6 +433,7 @@ async function deleteProp(id) {
   if (!confirm('Remove this listing?')) return;
   props = props.filter(p => p.id !== id);
   render();
+  if (mapMode) await showMap();
   await saveToGitHub();
 }
 
@@ -362,6 +449,9 @@ function saveSettings() {
   closeModal('settingsModal');
   loadFromGitHub();
 }
+
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmtDate(ts) { return new Date(ts).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
 
 loadFromGitHub();
 </script>
