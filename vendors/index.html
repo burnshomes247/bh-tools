@@ -375,7 +375,7 @@ async function addVendor(vendor) {
 
 function shareVendor(id) {
   const vendors = loadLocalVendors();
-  const v = vendors.find(v => v.id === id);
+  const v = vendors.find(item => item.id === id);
   if (!v) return;
   const parts = [];
   if (v.company) parts.push(v.company);
@@ -383,16 +383,19 @@ function shareVendor(id) {
   if (v.phone) parts.push(v.phone);
   if (v.email) parts.push(v.email);
   if (v.website) parts.push(v.website);
-  if (v.notes && v.notes.length) parts.push(v.notes.join(' · '));
   const text = parts.join('\n');
-  if (navigator.share) {
-    navigator.share({ text });
-  } else {
-    navigator.clipboard.writeText(text).then(() => {
-      const toast = document.getElementById('copy-toast');
-      toast.classList.add('show');
-      setTimeout(() => toast.classList.remove('show'), 2000);
-    });
+  try {
+    if (navigator.share) {
+      navigator.share({ text });
+    } else {
+      navigator.clipboard.writeText(text).then(() => {
+        const toast = document.getElementById('copy-toast');
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2000);
+      });
+    }
+  } catch(e) {
+    prompt('Copy this contact info:', text);
   }
 }
 
@@ -570,10 +573,11 @@ function render() {
       const notesHtml = v.notes && v.notes.length ? `<div class="card-notes">${v.notes.map(n=>`<span class="note">${esc(n)}</span>`).join('')}</div>` : '';
       const card = document.createElement('div');
       card.className = 'card';
+      card.dataset.id = v.id;
       card.innerHTML = `
         <div class="card-actions">
-          <button class="card-btn" onclick="shareVendor('${esc(v.id)}')" title="Copy contact info"><i class="ti ti-copy"></i></button>
-          <button class="card-btn" onclick="deleteVendor('${esc(v.id)}')" title="Remove"><i class="ti ti-x"></i></button>
+          <button class="card-btn share-btn" title="Copy contact info"><i class="ti ti-copy"></i></button>
+          <button class="card-btn delete-btn" title="Remove"><i class="ti ti-x"></i></button>
         </div>
         <div class="card-top">
           <div class="avatar" style="background:${style.bg};color:${style.fg};">${initials}</div>
@@ -586,6 +590,8 @@ function render() {
         ${notesHtml}
       `;
       grid.appendChild(card);
+      card.querySelector('.share-btn').addEventListener('click', () => shareVendor(v.id));
+      card.querySelector('.delete-btn').addEventListener('click', () => deleteVendor(v.id));
     }
     section.appendChild(grid);
     dir.appendChild(section);
