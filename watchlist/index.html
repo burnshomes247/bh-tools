@@ -45,7 +45,6 @@ header span { font-size: 13px; opacity: 0.65; }
 .sync-bar { font-size: 12px; color: #888; margin-bottom: 14px; min-height: 18px; display: flex; align-items: center; gap: 6px; }
 .sync-bar.err { color: #a32d2d; }
 .sync-bar.ok { color: #3B6D11; }
-/* Map */
 #map-container { display: none; border-radius: 12px; overflow: hidden; border: 1px solid #ddd; margin-bottom: 12px; }
 #map { height: 480px; width: 100%; }
 .map-status { font-size: 12px; color: #888; margin-bottom: 10px; min-height: 18px; }
@@ -56,7 +55,6 @@ header span { font-size: 13px; opacity: 0.65; }
 .popup-links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
 .popup-link { font-size: 12px; color: #185FA5; text-decoration: none; background: #e6f1fb; padding: 2px 8px; border-radius: 5px; display: inline-flex; align-items: center; gap: 3px; }
 .popup-link:hover { background: #b5d4f4; }
-/* Modal */
 .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1000; align-items: flex-start; justify-content: center; padding: 32px 16px; overflow-y: auto; }
 .modal-overlay.open { display: flex; }
 .modal { background: #fff; border-radius: 12px; border: 1px solid #ddd; padding: 1.5rem; width: 100%; max-width: 500px; }
@@ -112,7 +110,7 @@ header span { font-size: 13px; opacity: 0.65; }
     <div class="form-row">
       <label>Property address</label>
       <input type="text" id="f-address" placeholder="123 Main St, Arlington, VA" />
-      <div class="hint">Or paste a Zillow / Homes.com URL in Links below and the address will auto-fill.</div>
+      <div class="hint">Or paste a Zillow / Homes.com URL in Links and the address will auto-fill.</div>
     </div>
     <div class="form-row">
       <label>Links <span class="hint-small">(Zillow, Homes.com, MLS, etc.)</span></label>
@@ -164,6 +162,7 @@ let editId = null;
 let mapMode = false;
 let leafletMap = null;
 let mapMarkers = [];
+let currentMapToken = 0; // incremented to cancel in-flight geocoding runs
 
 function getSettings() {
   try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'); } catch(e) { return {}; }
@@ -224,8 +223,13 @@ function getFiltered() {
 }
 
 function onSearch() {
-  if (mapMode) showMap();
-  else render();
+  if (mapMode) {
+    // Cancel any in-flight geocoding and start fresh
+    currentMapToken++;
+    showMap();
+  } else {
+    render();
+  }
 }
 
 function linkLabel(url) {
@@ -262,12 +266,13 @@ function render() {
   `).join('');
 }
 
-// MAP
 async function geocode(address) {
   const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(address)}`;
-  const res = await fetch(url, { headers: { 'Accept-Language': 'en-US' } });
-  const data = await res.json();
-  if (data && data[0]) return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+  try {
+    const res = await fetch(url, { headers: { 'Accept-Language': 'en-US' } });
+    const data = await res.json();
+    if (data && data[0]) return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+  } catch(e) {}
   return null;
 }
 
@@ -281,8 +286,10 @@ async function toggleMap() {
     btn.innerHTML = '<i class="ti ti-list"></i> List view';
     mc.style.display = 'block';
     listEl.style.display = 'none';
+    currentMapToken++;
     await showMap();
   } else {
+    currentMapToken++; // cancel any in-flight geocoding
     btn.classList.remove('active-view');
     btn.innerHTML = '<i class="ti ti-map-2"></i> Map view';
     mc.style.display = 'none';
@@ -293,8 +300,12 @@ async function toggleMap() {
 }
 
 async function showMap() {
+  const myToken = currentMapToken; // snapshot — if this changes mid-run, we bail
   const filtered = getFiltered();
-  setMapStatus('');
+
+  // Clear existing markers immediately
+  mapMarkers.forEach(m => m.remove());
+  mapMarkers = [];
 
   if (!leafletMap) {
     leafletMap = L.map('map').setView([38.9, -77.03], 10);
@@ -302,11 +313,10 @@ async function showMap() {
       attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
       maxZoom: 19
     }).addTo(leafletMap);
+  } else {
+    // Force a clean re-render of the map in case it was hidden
+    setTimeout(() => leafletMap.invalidateSize(), 50);
   }
-
-  // Clear old markers
-  mapMarkers.forEach(m => m.remove());
-  mapMarkers = [];
 
   const withAddresses = filtered.filter(p => p.address && p.address.trim());
   if (!withAddresses.length) { setMapStatus('No listings with addresses to map.'); return; }
@@ -315,8 +325,17 @@ async function showMap() {
 
   const bounds = [];
   for (const p of withAddresses) {
-    await new Promise(r => setTimeout(r, 300)); // respect Nominatim rate limit
+    // Check if a newer search has started — if so, stop this run
+    if (currentMapToken !== myToken) return;
+
+    await new Promise(r => setTimeout(r, 300)); // Nominatim rate limit
+
+    if (currentMapToken !== myToken) return; // check again after delay
+
     const coords = await geocode(p.address);
+
+    if (currentMapToken !== myToken) return; // check after async fetch
+
     if (!coords) continue;
     bounds.push([coords.lat, coords.lng]);
 
@@ -331,20 +350,20 @@ async function showMap() {
       ${linksHtml ? `<div class="popup-links">${linksHtml}</div>` : ''}
     `;
 
-    const marker = L.marker([coords.lat, coords.lng])
-      .addTo(leafletMap)
-      .bindPopup(popup, { maxWidth: 260 });
+    const marker = L.marker([coords.lat, coords.lng]).addTo(leafletMap).bindPopup(popup, { maxWidth: 260 });
     mapMarkers.push(marker);
   }
+
+  if (currentMapToken !== myToken) return;
 
   if (bounds.length) {
     leafletMap.fitBounds(bounds, { padding: [40, 40] });
     setMapStatus(`${bounds.length} of ${withAddresses.length} listing${withAddresses.length !== 1 ? 's' : ''} mapped.`);
   } else {
-    setMapStatus('Could not geocode any addresses. Check that addresses include city and state.');
+    setMapStatus('Could not geocode any addresses. Make sure addresses include city and state.');
   }
 
-  setTimeout(() => leafletMap.invalidateSize(), 100);
+  leafletMap.invalidateSize();
 }
 
 // URL parsing
@@ -425,7 +444,7 @@ async function saveProperty() {
   }
   closeModal('addModal');
   render();
-  if (mapMode) await showMap();
+  if (mapMode) { currentMapToken++; await showMap(); }
   await saveToGitHub();
 }
 
@@ -433,7 +452,7 @@ async function deleteProp(id) {
   if (!confirm('Remove this listing?')) return;
   props = props.filter(p => p.id !== id);
   render();
-  if (mapMode) await showMap();
+  if (mapMode) { currentMapToken++; await showMap(); }
   await saveToGitHub();
 }
 
