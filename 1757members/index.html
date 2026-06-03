@@ -465,7 +465,7 @@ function renderCards() {
   grid.innerHTML = filtered.map(m => {
     const date = m.added ? new Date(m.added).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
     const lines = [
-      m.email && `<div class="card-email">${m.email}${m.phone ? ' · ' + m.phone : ''}</div>`,
+      (m.email || m.phone) && `<div class="card-email">${[m.email, m.phone].filter(Boolean).join(' · ')}</div>`,
       m.job && `<div style="font-size:12px;color:var(--gold);opacity:0.8;margin-bottom:8px">${m.job}</div>`,
       m.notes && `<div class="card-notes">${m.notes}</div>`
     ].filter(Boolean).join('');
