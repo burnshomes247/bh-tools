@@ -285,9 +285,12 @@ async function drawPins() {
   const run = ++drawRun;
   layer.clearLayers(); markers = {};
   const pts = [];
+  const total = props.filter(p => p.address).length; let done = 0;
   for (const p of props) {
     if (!p.address) continue;
     const c = await geocode(p.address);
+    done++;
+    setStatus(done < total ? `Placing pins ${done} of ${total}…` : 'Updated ' + new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }));
     if (run !== drawRun) return;
     if (!c) continue;
     const work = p.type === 'work', mine = p.added_by === 'buyer';
@@ -298,6 +301,7 @@ async function drawPins() {
       .bindPopup(`${work ? '<b style="color:#a3402c">WORK</b><br>' : ''}<b>${esc(p.address)}</b>${c.approx ? '<br><i style="color:#a3402c;font-size:12px">Approximate location: pinned to the street</i>' : ''}${p.notes ? '<br>' + esc(p.notes) : ''}${links ? '<br>' + links : ''}`)
       .addTo(layer);
     markers[p.id] = m; pts.push([c.lat, c.lng]);
+    if (pts.length === 1) map.setView(pts[0], 11);
   }
   if (pts.length) map.fitBounds(pts, { padding: [40, 40], maxZoom: 14 });
 }

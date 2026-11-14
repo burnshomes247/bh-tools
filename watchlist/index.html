@@ -411,6 +411,7 @@ async function showMap() {
   setMapStatus(`Mapping ${withAddresses.length} listing${withAddresses.length !== 1 ? 's' : ''}…`);
 
   const bounds = [];
+  let done = 0;
   for (const p of withAddresses) {
     // Check if a newer search has started — if so, stop this run
     if (currentMapToken !== myToken) return;
@@ -422,8 +423,12 @@ async function showMap() {
 
     if (currentMapToken !== myToken) return; // check after async fetch
 
+    done++;
+    setMapStatus(`Mapping ${done} of ${withAddresses.length}… (first load can take a few seconds per address; after that it's instant)`);
     if (!coords) continue;
     bounds.push([coords.lat, coords.lng]);
+    if (bounds.length === 1) leafletMap.setView(bounds[0], 11);
+    else if (bounds.length % 4 === 0) leafletMap.fitBounds(bounds, { padding: [40, 40] });
 
     const linksHtml = (p.links||[]).map(l =>
       `<a class="popup-link" href="${esc(l)}" target="_blank" rel="noopener"><i class="ti ti-external-link" style="font-size:11px"></i>${linkLabel(l)}</a>`
