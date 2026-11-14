@@ -64,6 +64,7 @@ footer { border-top: 1px solid var(--line); margin-top: 30px; padding-top: 16px;
 footer a { color: var(--navy); text-decoration: none; }
 .leaflet-popup-content { font-family: Georgia, serif; font-size: 13px; line-height: 1.45; }
 .pin { width: 28px; height: 28px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.45); color: #fff; display: flex; align-items: center; justify-content: center; font: bold 12px Georgia, serif; }
+.pin.approx { opacity: .75; border-style: dashed; }
 .locked { max-width: 460px; margin: 60px auto; text-align: center; }
 </style>
 </head>
@@ -210,17 +211,67 @@ function render() {
 }
 
 // ---- map ----
-function cacheGet(a) { try { return JSON.parse(localStorage.getItem('bhgeo:' + a) || 'null'); } catch (e) { return null; } }
-function cacheSet(a, v) { try { localStorage.setItem('bhgeo:' + a, JSON.stringify(v)); } catch (e) {} }
-async function geocode(address) {
-  const hit = cacheGet(address); if (hit) return hit;
-  try {
-    const res = await fetch('https://photon.komoot.io/api/?limit=1&lang=en&q=' + encodeURIComponent(address));
-    const d = await res.json();
-    if (d.features && d.features[0]) { const [lng, lat] = d.features[0].geometry.coordinates; const v = { lat, lng }; cacheSet(address, v); return v; }
-  } catch (e) {}
-  return null;
+// ---- geocoding (Photon / OpenStreetMap), limited to the DC–MD–VA area ----
+const GEO_BBOX = '-78.6,38.3,-76.4,39.8';
+const STREET_SUFFIX = /^(st|street|dr|drive|rd|road|ln|lane|ct|court|pl|place|cir|circle|way|ave|av|avenue|blvd|boulevard|ter|terrace|sq|square|pkwy|parkway|hwy|highway|trl|trail|loop|pike|xing|crossing|cv|cove)$/;
+const DIRS = { north: 'n', south: 's', east: 'e', west: 'w', northeast: 'ne', northwest: 'nw', southeast: 'se', southwest: 'sw' };
+const DIR_SET = /^(n|s|e|w|ne|nw|se|sw)$/;
+function streetCore(s) {
+  let t = String(s || '').toLowerCase().split(',')[0].replace(/[.#]/g, ' ').replace(/^\s*\d+[a-z]?\s+/, '')
+    .split(/\s+/).filter(Boolean).map(w => DIRS[w] || w);
+  // drop anything after the street type (e.g. a city written without a comma)
+  const cut = t.findIndex((w, i) => i > 0 && STREET_SUFFIX.test(w));
+  if (cut > 0) t = t.slice(0, cut + 1 + (DIR_SET.test(t[cut + 1] || '') ? 1 : 0));
+  if (t.length > 1 && DIR_SET.test(t[t.length - 1])) t.pop();
+  if (t.length > 1 && STREET_SUFFIX.test(t[t.length - 1])) t.pop();
+  if (t.length > 1 && DIR_SET.test(t[0])) t.shift();
+  return t.join(' ').replace(/^mc /, 'mc');
 }
+async function photon(q) {
+  try {
+    const res = await fetch('https://photon.komoot.io/api/?limit=3&lang=en&bbox=' + GEO_BBOX + '&q=' + encodeURIComponent(q));
+    const d = await res.json();
+    return (d && d.features) || [];
+  } catch (e) { return []; }
+}
+function pickMatch(features, address) {
+  const num = (address.match(/^\s*(\d+)/) || [])[1];
+  const core = streetCore(address.split(',')[0]);
+  let approx = null;
+  for (const f of features) {
+    const p = f.properties || {};
+    const street = streetCore(p.street || p.name || '');
+    const sameStreet = core && street && (street === core || street.indexOf(core) === 0 || core.indexOf(street) === 0);
+    const [lng, lat] = f.geometry.coordinates;
+    if (num && p.housenumber && String(p.housenumber) === num && sameStreet) return { lat, lng, approx: false };
+    if (!num && sameStreet) return { lat, lng, approx: false };
+    if (!approx && sameStreet) approx = { lat, lng, approx: true };
+  }
+  return approx;
+}
+async function geocodeAddress(address) {
+  address = String(address || '').trim();
+  if (!address) return null;
+  // 1) full address  2) street line only (drops a city name OSM may file differently, e.g. Great Falls vs Reston)
+  let hit = pickMatch(await photon(address), address);
+  if (hit && !hit.approx) return hit;
+  const streetLine = address.split(',')[0].trim();
+  if (streetLine !== address) {
+    const h2 = pickMatch(await photon(streetLine + ', VA'), address) || pickMatch(await photon(streetLine), address);
+    if (h2 && (!h2.approx || !hit)) hit = h2;
+  }
+  return hit; // null, exact, or { approx: true } = street-level location
+}
+
+function geoCacheGet(a) { try { return JSON.parse(localStorage.getItem('bhgeo2:' + a) || 'null'); } catch (e) { return null; } }
+function geoCacheSet(a, v) { try { localStorage.setItem('bhgeo2:' + a, JSON.stringify(v)); } catch (e) {} }
+async function geocode(address) {
+  const hit = geoCacheGet(address); if (hit) return hit;
+  const g = await geocodeAddress(address);
+  if (g) geoCacheSet(address, g);
+  return g;
+}
+
 let drawRun = 0;
 async function drawPins() {
   const run = ++drawRun;
@@ -233,10 +284,10 @@ async function drawPins() {
     if (!c) continue;
     const work = p.type === 'work', mine = p.added_by === 'buyer';
     const color = work ? '#a3402c' : mine ? '#3f7d3a' : '#072d5e';
-    const icon = L.divIcon({ className: '', html: `<div class="pin" style="background:${color}">${p._label}</div>`, iconSize: [28, 28], iconAnchor: [14, 14], popupAnchor: [0, -14] });
+    const icon = L.divIcon({ className: '', html: `<div class="pin${c.approx ? ' approx' : ''}" style="background:${color}">${p._label}</div>`, iconSize: [28, 28], iconAnchor: [14, 14], popupAnchor: [0, -14] });
     const links = (p.links || []).map(l => `<a href="${esc(safeUrl(l))}" target="_blank" rel="noopener">${esc(linkLabel(l))} ↗</a>`).join(' · ');
     const m = L.marker([c.lat, c.lng], { icon, zIndexOffset: work ? 1000 : 0 })
-      .bindPopup(`${work ? '<b style="color:#a3402c">WORK</b><br>' : ''}<b>${esc(p.address)}</b>${p.notes ? '<br>' + esc(p.notes) : ''}${links ? '<br>' + links : ''}`)
+      .bindPopup(`${work ? '<b style="color:#a3402c">WORK</b><br>' : ''}<b>${esc(p.address)}</b>${c.approx ? '<br><i style="color:#a3402c;font-size:12px">Approximate location: pinned to the street</i>' : ''}${p.notes ? '<br>' + esc(p.notes) : ''}${links ? '<br>' + links : ''}`)
       .addTo(layer);
     markers[p.id] = m; pts.push([c.lat, c.lng]);
   }
