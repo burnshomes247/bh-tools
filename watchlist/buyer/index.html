@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow" />
+<meta name="referrer" content="no-referrer" />
+<title>Your Home Search · BURNSHOMES</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root { --cream: #f5f2ea; --navy: #072d5e; --steel: #5889b4; --brick: #a3402c; --gold: #b3872a; --ink: #1d2430; --muted: #6b6f78; --line: #ddd6c6; }
+body { font-family: Georgia, 'Times New Roman', serif; background: var(--cream); color: var(--ink); min-height: 100vh; }
+header { background: var(--navy); color: #fff; padding: 14px 20px; }
+.head-inner { max-width: 900px; margin: 0 auto; display: flex; align-items: center; gap: 14px; }
+.logo { width: 46px; height: 46px; border-radius: 50%; display: block; background: #fff; }
+.brand { font-size: 18px; letter-spacing: .14em; font-weight: bold; color: #fff; text-decoration: none; }
+.sub { font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: #c9d6e6; margin-top: 2px; }
+.rule { height: 3px; background: var(--gold); }
+.wrap { max-width: 900px; margin: 0 auto; padding: 20px 16px 40px; }
+h1 { font-size: 22px; font-weight: normal; color: var(--navy); margin-bottom: 4px; }
+.intro { font-size: 14px; color: var(--muted); line-height: 1.5; margin-bottom: 16px; }
+.toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+.btn { font-family: inherit; font-size: 14px; padding: 9px 16px; border-radius: 8px; border: 1px solid var(--navy); background: #fff; color: var(--navy); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
+.btn.primary { background: var(--navy); color: #fff; }
+.btn:disabled { opacity: .6; cursor: default; }
+.status { font-size: 12px; color: var(--muted); margin-left: auto; }
+.status.err { color: var(--brick); }
+.frame { border: 3px double var(--navy); border-radius: 10px; overflow: hidden; background: #fff; margin-bottom: 18px; }
+#map { height: 420px; width: 100%; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); padding: 8px 12px; border-top: 1px solid var(--line); background: #fbf9f4; }
+.dot { display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.2); }
+.label { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--navy); font-weight: bold; margin: 6px 0 10px; }
+.list { display: flex; flex-direction: column; gap: 10px; }
+.card { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: flex; gap: 12px; align-items: flex-start; }
+.card.work { border-left: 4px solid var(--brick); }
+.card.mine { border-left: 4px solid #3f7d3a; }
+.num { flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%; background: var(--navy); color: #fff; font-size: 13px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.card.mine .num { background: #3f7d3a; }
+.card.work .num { background: var(--brick); }
+.info { flex: 1; min-width: 0; }
+.addr { font-size: 16px; color: var(--ink); cursor: pointer; }
+.tag { display: inline-block; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; margin-left: 6px; vertical-align: 2px; color: #fff; }
+.tag.work { background: var(--brick); }
+.tag.mine { background: #3f7d3a; }
+.note { font-size: 14px; color: var(--muted); margin-top: 6px; line-height: 1.5; white-space: pre-wrap; }
+.links { margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap; }
+.links a { font-size: 13px; color: var(--navy); background: #eaf0f7; padding: 4px 10px; border-radius: 6px; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
+.del { background: none; border: none; color: #aaa; font-size: 18px; cursor: pointer; padding: 4px; border-radius: 6px; }
+.del:hover { color: var(--brick); background: #f7e9e5; }
+.empty { background: #fff; border: 1px dashed var(--line); border-radius: 10px; padding: 28px; text-align: center; color: var(--muted); font-size: 14px; }
+.overlay { display: none; position: fixed; inset: 0; background: rgba(7,45,94,.45); z-index: 2000; align-items: flex-start; justify-content: center; padding: 40px 16px; overflow-y: auto; }
+.overlay.open { display: flex; }
+.modal { background: #fff; border: 3px double var(--navy); border-radius: 10px; padding: 20px; width: 100%; max-width: 460px; }
+.modal h2 { font-size: 18px; font-weight: normal; color: var(--navy); margin-bottom: 14px; }
+.field { margin-bottom: 12px; }
+.field label { display: block; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+.field input, .field textarea { width: 100%; font-family: inherit; font-size: 15px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; }
+.field textarea { min-height: 70px; resize: vertical; }
+.hint { font-size: 12px; color: var(--muted); margin-top: 3px; }
+.actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+footer { border-top: 1px solid var(--line); margin-top: 30px; padding-top: 16px; text-align: center; font-size: 13px; color: var(--muted); line-height: 1.7; }
+footer a { color: var(--navy); text-decoration: none; }
+.leaflet-popup-content { font-family: Georgia, serif; font-size: 13px; line-height: 1.45; }
+.pin { width: 28px; height: 28px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.45); color: #fff; display: flex; align-items: center; justify-content: center; font: bold 12px Georgia, serif; }
+.locked { max-width: 460px; margin: 60px auto; text-align: center; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="head-inner">
+    <a href="https://burnshomes.com" target="_blank" rel="noopener"><img class="logo" src="https://raw.githubusercontent.com/burnshomes247/listings/main/burnshomes-logo.png" alt="BURNSHOMES" /></a>
+    <div>
+      <a class="brand" href="https://burnshomes.com" target="_blank" rel="noopener">BURNSHOMES</a>
+      <div class="sub" id="sub">Home Search</div>
+    </div>
+  </div>
+</header>
+<div class="rule"></div>
+
+<div class="wrap" id="app">
+  <div class="locked" id="loading"><p class="intro">Loading your homes…</p></div>
+</div>
+
+<div class="overlay" id="addModal" onclick="if(event.target===this)closeAdd()">
+  <div class="modal">
+    <h2>Add a home</h2>
+    <div class="field">
+      <label>Zillow or other listing link</label>
+      <input type="url" id="f-link" placeholder="https://www.zillow.com/homedetails/…" oninput="autoAddress()" />
+    </div>
+    <div class="field">
+      <label>Address</label>
+      <input type="text" id="f-address" placeholder="123 Main St, Arlington, VA 22201" />
+      <div class="hint">Paste a link and the address fills in, or type it yourself.</div>
+    </div>
+    <div class="field">
+      <label>Note for Mike <span style="text-transform:none;letter-spacing:0">(optional)</span></label>
+      <textarea id="f-note" placeholder="What caught your eye?"></textarea>
+    </div>
+    <div class="actions">
+      <button class="btn" onclick="closeAdd()">Cancel</button>
+      <button class="btn primary" id="saveBtn" onclick="saveAdd()">Add to list</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const API = '__API_URL__';
+const TOKEN = decodeURIComponent((location.hash || '').slice(1));
+let lastSig = '', client = '', props = [], map = null, layer = null, markers = {};
+
+function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function safeUrl(u) { return /^https?:\/\//i.test(u) ? u : '#'; }
+function linkLabel(u) {
+  if (/zillow\.com/i.test(u)) return 'Zillow';
+  if (/homes\.com/i.test(u)) return 'Homes.com';
+  if (/redfin\.com/i.test(u)) return 'Redfin';
+  if (/realtor\.com/i.test(u)) return 'Realtor.com';
+  try { return new URL(u).hostname.replace(/^www\./, ''); } catch (e) { return 'Link'; }
+}
+function setStatus(msg, err) { const el = document.getElementById('status'); if (el) { el.textContent = msg; el.className = 'status' + (err ? ' err' : ''); } }
+
+async function api(action, body) {
+  const res = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(Object.assign({ action, token: TOKEN }, body || {})) });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data;
+}
+
+function locked(msg) {
+  document.getElementById('app').innerHTML = `<div class="locked"><h1>${esc(msg)}</h1><p class="intro">Please check the link Mike sent you, or reach him at <a href="tel:7034032022">(703) 403-2022</a>.</p></div>`;
+}
+
+async function load(first) {
+  if (!TOKEN || API.indexOf('__') === 0) { locked('This link is not active.'); return; }
+  try {
+    const data = await api('buyerList');
+    const sig = JSON.stringify(data.props);
+    if (!first && sig === lastSig) { setStatus('Updated ' + new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })); return; }
+    lastSig = sig;
+    client = data.client;
+    props = data.props.sort((a, b) => (a.type === 'work') - (b.type === 'work') || b.added - a.added);
+    if (first) shell();
+    render();
+    setStatus('Updated ' + new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }));
+  } catch (e) {
+    if (first) locked(/not active/i.test(e.message) ? 'This link is not active.' : 'Could not load your list.');
+    else setStatus('Could not refresh. ' + e.message, true);
+  }
+}
+
+function shell() {
+  document.title = client + ' Home Search · BURNSHOMES';
+  document.getElementById('sub').textContent = client + ' · Home Search';
+  document.getElementById('app').innerHTML = `
+    <h1>Homes we're watching</h1>
+    <p class="intro">Mike adds homes here as he finds them, and you can add any you like too. Tap a pin or an address for details.</p>
+    <div class="toolbar">
+      <button class="btn primary" onclick="openAdd()"><i class="ti ti-plus"></i> Add a home</button>
+      <button class="btn" onclick="load(false)"><i class="ti ti-refresh"></i> Refresh</button>
+      <span class="status" id="status"></span>
+    </div>
+    <div class="frame"><div id="map"></div>
+      <div class="legend">
+        <span><span class="dot" style="background:#072d5e"></span>Added by Mike</span>
+        <span><span class="dot" style="background:#3f7d3a"></span>Added by you</span>
+        <span><span class="dot" style="background:#a3402c"></span>Work</span>
+      </div>
+    </div>
+    <div class="label" id="countLabel"></div>
+    <div class="list" id="list"></div>
+    <footer>
+      MIKE BURNS · BURNSHOMES · RLAH Real Estate<br>
+      <a href="tel:7034032022">(703) 403-2022</a> · <a href="mailto:mike@burnshomes.com">mike@burnshomes.com</a> · <a href="https://burnshomes.com" target="_blank" rel="noopener">burnshomes.com</a><br>
+      Licensed in VA, MD and DC
+    </footer>`;
+  map = L.map('map').setView([38.88, -77.15], 10);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxZoom: 19 }).addTo(map);
+  layer = L.layerGroup().addTo(map);
+}
+
+function render() {
+  const homes = props.filter(p => p.type !== 'work');
+  document.getElementById('countLabel').textContent = homes.length + (homes.length === 1 ? ' home' : ' homes');
+  const list = document.getElementById('list');
+  if (!props.length) { list.innerHTML = '<div class="empty">No homes yet. Tap “Add a home” to start the list.</div>'; }
+  else {
+    let n = 0;
+    list.innerHTML = props.map(p => {
+      const work = p.type === 'work', mine = p.added_by === 'buyer';
+      const label = work ? '<i class="ti ti-briefcase"></i>' : String(++n);
+      p._label = label;
+      return `<div class="card ${work ? 'work' : mine ? 'mine' : ''}">
+        <div class="num" onclick="focusPin('${esc(p.id)}')">${label}</div>
+        <div class="info">
+          <div class="addr" onclick="focusPin('${esc(p.id)}')">${esc(p.address || 'Address pending')}${work ? '<span class="tag work">Work</span>' : mine ? '<span class="tag mine">Added by you</span>' : ''}</div>
+          ${p.notes ? `<div class="note">${esc(p.notes)}</div>` : ''}
+          ${(p.links || []).length ? `<div class="links">${p.links.map(l => `<a href="${esc(safeUrl(l))}" target="_blank" rel="noopener"><i class="ti ti-external-link"></i>${esc(linkLabel(l))}</a>`).join('')}</div>` : ''}
+        </div>
+        ${mine ? `<button class="del" title="Remove" onclick="removeMine('${esc(p.id)}')"><i class="ti ti-trash"></i></button>` : ''}
+      </div>`;
+    }).join('');
+  }
+  drawPins();
+}
+
+// ---- map ----
+function cacheGet(a) { try { return JSON.parse(localStorage.getItem('bhgeo:' + a) || 'null'); } catch (e) { return null; } }
+function cacheSet(a, v) { try { localStorage.setItem('bhgeo:' + a, JSON.stringify(v)); } catch (e) {} }
+async function geocode(address) {
+  const hit = cacheGet(address); if (hit) return hit;
+  try {
+    const res = await fetch('https://photon.komoot.io/api/?limit=1&lang=en&q=' + encodeURIComponent(address));
+    const d = await res.json();
+    if (d.features && d.features[0]) { const [lng, lat] = d.features[0].geometry.coordinates; const v = { lat, lng }; cacheSet(address, v); return v; }
+  } catch (e) {}
+  return null;
+}
+let drawRun = 0;
+async function drawPins() {
+  const run = ++drawRun;
+  layer.clearLayers(); markers = {};
+  const pts = [];
+  for (const p of props) {
+    if (!p.address) continue;
+    const c = await geocode(p.address);
+    if (run !== drawRun) return;
+    if (!c) continue;
+    const work = p.type === 'work', mine = p.added_by === 'buyer';
+    const color = work ? '#a3402c' : mine ? '#3f7d3a' : '#072d5e';
+    const icon = L.divIcon({ className: '', html: `<div class="pin" style="background:${color}">${p._label}</div>`, iconSize: [28, 28], iconAnchor: [14, 14], popupAnchor: [0, -14] });
+    const links = (p.links || []).map(l => `<a href="${esc(safeUrl(l))}" target="_blank" rel="noopener">${esc(linkLabel(l))} ↗</a>`).join(' · ');
+    const m = L.marker([c.lat, c.lng], { icon, zIndexOffset: work ? 1000 : 0 })
+      .bindPopup(`${work ? '<b style="color:#a3402c">WORK</b><br>' : ''}<b>${esc(p.address)}</b>${p.notes ? '<br>' + esc(p.notes) : ''}${links ? '<br>' + links : ''}`)
+      .addTo(layer);
+    markers[p.id] = m; pts.push([c.lat, c.lng]);
+  }
+  if (pts.length) map.fitBounds(pts, { padding: [40, 40], maxZoom: 14 });
+}
+function focusPin(id) {
+  const m = markers[id]; if (!m) return;
+  document.getElementById('map').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  map.setView(m.getLatLng(), 15); m.openPopup();
+}
+
+// ---- add / remove ----
+function parseAddressFromUrl(url) {
+  try {
+    let m = url.match(/zillow\.com\/homedetails\/([^\/]+)/i);
+    if (m) return m[1].replace(/-(\d{5})$/, ' $1').replace(/-([A-Z]{2}) (\d{5})$/i, ', $1 $2').replace(/-/g, ' ').trim();
+    m = url.match(/homes\.com\/[^\/]*\/([^\/]+)/i);
+    if (m) return m[1].replace(/_\d{5,}.*$/, '').replace(/[_-]/g, ' ').trim();
+  } catch (e) {}
+  return '';
+}
+function autoAddress() {
+  const a = parseAddressFromUrl(document.getElementById('f-link').value.trim());
+  const f = document.getElementById('f-address');
+  if (a && (!f.value || f.dataset.auto === '1')) { f.value = a; f.dataset.auto = '1'; }
+}
+function openAdd() {
+  ['f-link', 'f-address', 'f-note'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f-address').dataset.auto = '';
+  document.getElementById('addModal').classList.add('open');
+  setTimeout(() => document.getElementById('f-link').focus(), 50);
+}
+function closeAdd() { document.getElementById('addModal').classList.remove('open'); }
+async function saveAdd() {
+  const link = document.getElementById('f-link').value.trim();
+  const address = document.getElementById('f-address').value.trim();
+  const note = document.getElementById('f-note').value.trim();
+  if (!address && !link) { alert('Please add an address or a link.'); return; }
+  const btn = document.getElementById('saveBtn'); btn.disabled = true; btn.textContent = 'Adding…';
+  try {
+    await api('buyerAdd', { address, link, note });
+    closeAdd(); await load(false);
+  } catch (e) { alert('Could not add it: ' + e.message); }
+  btn.disabled = false; btn.textContent = 'Add to list';
+}
+async function removeMine(id) {
+  if (!confirm('Remove this home from the list?')) return;
+  try { await api('buyerDelete', { id }); await load(false); } catch (e) { alert('Could not remove it: ' + e.message); }
+}
+
+load(true);
+setInterval(() => { if (document.visibilityState === 'visible' && client) load(false); }, 120000);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && client) load(false); });
+</script>
+</body>
+</html>
