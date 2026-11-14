@@ -227,12 +227,21 @@ function streetCore(s) {
   if (t.length > 1 && DIR_SET.test(t[0])) t.shift();
   return t.join(' ').replace(/^mc /, 'mc');
 }
+// The free map lookup service limits how fast we can ask, so space requests out and retry when it says "slow down".
+let lastPhoton = 0;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function photon(q) {
-  try {
-    const res = await fetch('https://photon.komoot.io/api/?limit=3&lang=en&bbox=' + GEO_BBOX + '&q=' + encodeURIComponent(q));
-    const d = await res.json();
-    return (d && d.features) || [];
-  } catch (e) { return []; }
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const wait = lastPhoton + 600 - Date.now();
+    if (wait > 0) await sleep(wait);
+    lastPhoton = Date.now();
+    try {
+      const res = await fetch('https://photon.komoot.io/api/?limit=3&lang=en&bbox=' + GEO_BBOX + '&q=' + encodeURIComponent(q));
+      if (res.ok) { const d = await res.json(); return (d && d.features) || []; }
+    } catch (e) {}
+    await sleep(1500 * (attempt + 1));
+  }
+  return [];
 }
 function pickMatch(features, address) {
   const num = (address.match(/^\s*(\d+)/) || [])[1];
