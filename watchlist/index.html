@@ -359,6 +359,12 @@ async function geocode(address) {
   return g;
 }
 
+function savedCoords(p) {
+  if (p.lat === null || p.lat === undefined || p.lat === '' || isNaN(Number(p.lat))) return null;
+  if (p.geo_addr && p.geo_addr !== (p.address || '').trim()) return null;
+  return { lat: Number(p.lat), lng: Number(p.lng), approx: p.geo === 'approx' };
+}
+
 async function toggleMap() {
   mapMode = !mapMode;
   const btn = document.getElementById('mapBtn');
@@ -419,7 +425,7 @@ async function showMap() {
 
     if (currentMapToken !== myToken) return; // check again after delay
 
-    const coords = await geocode(p.address);
+    const coords = savedCoords(p) || (p.geo === 'none' ? null : await geocode(p.address));
 
     if (currentMapToken !== myToken) return; // check after async fetch
 
