@@ -32,6 +32,9 @@ header span { font-size: 13px; opacity: 0.65; }
 .prop-info { flex: 1; min-width: 0; }
 .prop-address { font-size: 15px; font-weight: 500; color: #1a1a18; }
 .prop-client { font-size: 13px; color: #5f5e5a; margin-top: 3px; display: flex; align-items: center; gap: 4px; }
+.type-badge { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 600; color: #fff; background: #c2410c; border-radius: 999px; padding: 1px 8px; margin-left: 6px; vertical-align: middle; }
+.prop-card.is-work { border-left: 4px solid #c2410c; }
+.work-pin { background: #c2410c; color: #fff; width: 30px; height: 30px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; font-size: 16px; }
 .prop-actions { display: flex; gap: 4px; flex-shrink: 0; }
 .icon-btn { background: none; border: none; cursor: pointer; color: #888; font-size: 18px; padding: 5px; border-radius: 7px; display: flex; align-items: center; }
 .icon-btn:hover { background: #f1efe8; color: #1a1a18; }
@@ -106,6 +109,13 @@ header span { font-size: 13px; opacity: 0.65; }
     <div class="form-row">
       <label>Client name</label>
       <input type="text" id="f-client" placeholder="e.g. Jordan, Smith family" />
+    </div>
+    <div class="form-row">
+      <label>Pin type</label>
+      <select id="f-type" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:14px;background:#fff">
+        <option value="">Property</option>
+        <option value="work">Work / commute location (not a property)</option>
+      </select>
     </div>
     <div class="form-row">
       <label>Property address</label>
@@ -248,10 +258,10 @@ function render() {
     return;
   }
   list.innerHTML = filtered.map(p => `
-    <div class="prop-card">
+    <div class="prop-card${p.type === 'work' ? ' is-work' : ''}">
       <div class="prop-top">
         <div class="prop-info">
-          <div class="prop-address">${esc(p.address || '—')}</div>
+          <div class="prop-address">${esc(p.address || '—')}${p.type === 'work' ? '<span class="type-badge"><i class="ti ti-briefcase" style="font-size:11px"></i>Work</span>' : ''}</div>
           ${p.client ? `<div class="prop-client"><i class="ti ti-user" style="font-size:13px"></i>${esc(p.client)}</div>` : ''}
         </div>
         <div class="prop-actions">
@@ -352,13 +362,17 @@ async function showMap() {
     ).join('');
 
     const popup = `
+      ${p.type === 'work' ? '<div style="font-weight:600;color:#c2410c;font-size:12px">💼 WORK LOCATION</div>' : ''}
       <div class="popup-address">${esc(p.address)}</div>
       ${p.client ? `<div class="popup-client"><i class="ti ti-user" style="font-size:12px"></i> ${esc(p.client)}</div>` : ''}
       ${p.notes ? `<div class="popup-notes">${esc(p.notes)}</div>` : ''}
       ${linksHtml ? `<div class="popup-links">${linksHtml}</div>` : ''}
     `;
 
-    const marker = L.marker([coords.lat, coords.lng]).addTo(leafletMap).bindPopup(popup, { maxWidth: 260 });
+    const markerOpts = p.type === 'work'
+      ? { icon: L.divIcon({ className: '', html: '<div class="work-pin"><i class="ti ti-briefcase"></i></div>', iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -15] }), zIndexOffset: 1000 }
+      : {};
+    const marker = L.marker([coords.lat, coords.lng], markerOpts).addTo(leafletMap).bindPopup(popup, { maxWidth: 260 });
     mapMarkers.push(marker);
   }
 
@@ -412,6 +426,7 @@ function openAdd() {
   document.getElementById('modalTitle').textContent = 'Add listing';
   document.getElementById('f-client').value = '';
   document.getElementById('f-address').value = '';
+  document.getElementById('f-type').value = '';
   document.getElementById('f-address').dataset.autofilled = '';
   document.getElementById('f-notes').value = '';
   document.getElementById('links-list').innerHTML = '';
@@ -429,6 +444,7 @@ function openEdit(id) {
   document.getElementById('f-address').value = p.address || '';
   document.getElementById('f-address').dataset.autofilled = '';
   document.getElementById('f-notes').value = p.notes || '';
+  document.getElementById('f-type').value = p.type || '';
   document.getElementById('links-list').innerHTML = '';
   (p.links||[]).forEach(l => addLinkRow(l));
   if (!(p.links||[]).length) addLinkRow('');
@@ -443,7 +459,7 @@ async function saveProperty() {
   const client = document.getElementById('f-client').value.trim();
   if (!address && !client) { alert('Enter at least a client name or address.'); return; }
   const now = Date.now();
-  const data = { address, client, notes: document.getElementById('f-notes').value.trim(), links: getLinkValues() };
+  const data = { address, client, notes: document.getElementById('f-notes').value.trim(), links: getLinkValues(), type: document.getElementById('f-type').value };
   if (editId) {
     const idx = props.findIndex(p => p.id === editId);
     if (idx > -1) props[idx] = { ...props[idx], ...data, updated: now };
