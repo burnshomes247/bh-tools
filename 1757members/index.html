@@ -361,16 +361,12 @@
   <div class="modal">
     <h2>⚙️ Settings</h2>
     <div class="form-row">
-      <label>GitHub Token</label>
-      <input id="s-token" type="password" placeholder="ghp_...">
+      <label>Connector URL</label>
+      <input id="s-api" type="text" placeholder="https://script.google.com/macros/s/.../exec">
     </div>
     <div class="form-row">
-      <label>GitHub Repo</label>
-      <input id="s-repo" type="text" placeholder="burnshomes247/bh-tools">
-    </div>
-    <div class="form-row">
-      <label>Data File Path</label>
-      <input id="s-path" type="text" placeholder="1757members/members.json">
+      <label>Admin Key</label>
+      <input id="s-key" type="password" placeholder="Admin key">
     </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('settingsModal')">Cancel</button>
@@ -391,47 +387,47 @@ function saveSettingsToStorage(s) {
   localStorage.setItem('1757settings', JSON.stringify(s));
 }
 
-// ── GITHUB SYNC ──
-async function loadFromGitHub() {
+// ── SHEET SYNC ──
+const DEFAULT_API = 'https://script.google.com/macros/s/AKfycby9JnNVFzKY9JUrs2xxAMC_Zp15r1nRQvf1nSN6NnYhrooopTC3nKH1MKXcKVrFHFl3YQ/exec';
+function apiUrl() { return getSettings().api || (DEFAULT_API.indexOf('__') === 0 ? '' : DEFAULT_API); }
+async function api(action, body) {
   const s = getSettings();
-  if (!s.token || !s.repo || !s.path) {
-    setSyncStatus('No GitHub settings — tap ⚙️ to configure', 'err');
+  const url = apiUrl();
+  if (!url || !s.key) throw new Error('not configured');
+  const r = await fetch(url, { method: 'POST', body: JSON.stringify({ action, key: s.key, ...(body || {}) }) });
+  const j = await r.json();
+  if (!j.ok) throw new Error(j.error || 'request failed');
+  return j;
+}
+async function loadMembers() {
+  if (!apiUrl() || !getSettings().key) {
+    setSyncStatus('Tap ⚙️ to enter the connector URL and admin key', 'err');
     renderCards();
     return;
   }
   setSyncStatus('Syncing…', 'loading');
   try {
-    const r = await fetch(`https://api.github.com/repos/${s.repo}/contents/${s.path}`, {
-      headers: { Authorization: `Bearer ${s.token}`, Accept: 'application/vnd.github+json' }
-    });
-    if (r.status === 404) { members = []; setSyncStatus('Ready — no data yet', 'ok'); renderCards(); return; }
-    if (!r.ok) throw new Error('GitHub fetch failed');
-    const json = await r.json();
-    members = JSON.parse(atob(json.content.replace(/\n/g, '')));
+    const j = await api('list');
+    members = j.members.sort((a, b) => (b.added || 0) - (a.added || 0));
     setSyncStatus(`Synced · ${members.length} member${members.length !== 1 ? 's' : ''}`, 'ok');
   } catch (e) {
     setSyncStatus('Sync error: ' + e.message, 'err');
   }
   renderCards();
 }
-
-async function saveToGitHub() {
-  const s = getSettings();
-  if (!s.token || !s.repo || !s.path) return;
+async function pushMember(m) {
   setSyncStatus('Saving…', 'loading');
   try {
-    let sha;
-    const get = await fetch(`https://api.github.com/repos/${s.repo}/contents/${s.path}`, {
-      headers: { Authorization: `Bearer ${s.token}`, Accept: 'application/vnd.github+json' }
-    });
-    if (get.ok) { const j = await get.json(); sha = j.sha; }
-    const body = { message: 'Update 1757 member directory', content: btoa(unescape(encodeURIComponent(JSON.stringify(members, null, 2)))), ...(sha ? { sha } : {}) };
-    const put = await fetch(`https://api.github.com/repos/${s.repo}/contents/${s.path}`, {
-      method: 'PUT',
-      headers: { Authorization: `Bearer ${s.token}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-    if (!put.ok) throw new Error('Save failed');
+    await api('save', { member: m });
+    setSyncStatus(`Saved · ${members.length} member${members.length !== 1 ? 's' : ''}`, 'ok');
+  } catch (e) {
+    setSyncStatus('Save error: ' + e.message, 'err');
+  }
+}
+async function removeMember(id) {
+  setSyncStatus('Saving…', 'loading');
+  try {
+    await api('delete', { id });
     setSyncStatus(`Saved · ${members.length} member${members.length !== 1 ? 's' : ''}`, 'ok');
   } catch (e) {
     setSyncStatus('Save error: ' + e.message, 'err');
@@ -510,6 +506,7 @@ async function saveMember() {
   const name = document.getElementById('f-name').value.trim();
   if (!name) { alert('Name is required.'); return; }
   const now = Date.now();
+  let saved = null;
   const data = {
     name,
     email: document.getElementById('f-email').value.trim(),
@@ -520,12 +517,14 @@ async function saveMember() {
   if (editId) {
     const idx = members.findIndex(m => m.id === editId);
     if (idx > -1) members[idx] = { ...members[idx], ...data, updated: now };
+    saved = members[idx];
   } else {
-    members.unshift({ id: 'm' + now, ...data, added: now });
+    saved = { id: 'm' + now, ...data, added: now };
+    members.unshift(saved);
   }
   closeModal('addModal');
   renderCards();
-  await saveToGitHub();
+  if (saved) await pushMember(saved);
 }
 
 async function deleteMember(id) {
@@ -533,7 +532,7 @@ async function deleteMember(id) {
   if (!confirm(`Remove ${m?.name || 'this member'}?`)) return;
   members = members.filter(x => x.id !== id);
   renderCards();
-  await saveToGitHub();
+  await removeMember(id);
 }
 
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
@@ -541,19 +540,17 @@ function closeModal(id) { document.getElementById(id).classList.remove('open'); 
 // ── SETTINGS ──
 function openSettings() {
   const s = getSettings();
-  document.getElementById('s-token').value = s.token || '';
-  document.getElementById('s-repo').value = s.repo || 'burnshomes247/bh-tools';
-  document.getElementById('s-path').value = s.path || '1757members/members.json';
+  document.getElementById('s-api').value = s.api || '';
+  document.getElementById('s-key').value = s.key || '';
   document.getElementById('settingsModal').classList.add('open');
 }
 function saveSettings() {
   saveSettingsToStorage({
-    token: document.getElementById('s-token').value.trim(),
-    repo: document.getElementById('s-repo').value.trim(),
-    path: document.getElementById('s-path').value.trim(),
+    api: document.getElementById('s-api').value.trim(),
+    key: document.getElementById('s-key').value.trim(),
   });
   closeModal('settingsModal');
-  loadFromGitHub();
+  loadMembers();
 }
 
 // close on overlay click
@@ -561,7 +558,7 @@ document.querySelectorAll('.modal-overlay').forEach(el => {
   el.addEventListener('click', e => { if (e.target === el) closeModal(el.id); });
 });
 
-loadFromGitHub();
+loadMembers();
 </script>
 </body>
 </html>
